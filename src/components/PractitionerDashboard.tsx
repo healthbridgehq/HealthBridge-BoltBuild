@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Calendar, 
@@ -14,7 +15,8 @@ import {
   Bell,
   Search,
   Filter,
-  BarChart3
+  BarChart3,
+  X
 } from 'lucide-react';
 
 interface Patient {
@@ -46,6 +48,7 @@ interface Task {
 }
 
 export function PractitionerDashboard() {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
@@ -56,6 +59,7 @@ export function PractitionerDashboard() {
     completedToday: 0
   });
   const [loading, setLoading] = useState(false);
+  const [showClinicalAlert, setShowClinicalAlert] = useState(true);
 
   useEffect(() => {
     // Mock data for demonstration - no async operations that could fail
@@ -92,6 +96,38 @@ export function PractitionerDashboard() {
     });
     setLoading(false);
   }, []);
+
+  const handleViewFullSchedule = () => {
+    navigate('/appointments');
+  };
+
+  const handleNewConsultation = () => {
+    navigate('/clinical-records/create');
+  };
+
+  const handleCreateRecord = () => {
+    navigate('/clinical-records/create');
+  };
+
+  const handleMessagePatient = () => {
+    navigate('/messages');
+  };
+
+  const handleViewAnalytics = () => {
+    navigate('/analytics');
+  };
+
+  const handleCompleteTask = (taskId: string) => {
+    setPendingTasks(prev => prev.filter(task => task.id !== taskId));
+  };
+
+  const handleDismissTask = (taskId: string) => {
+    setPendingTasks(prev => prev.filter(task => task.id !== taskId));
+  };
+
+  const handleDismissAlert = () => {
+    setShowClinicalAlert(false);
+  };
 
   if (loading) {
     return (
@@ -233,7 +269,10 @@ export function PractitionerDashboard() {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+            <button 
+              onClick={handleViewFullSchedule}
+              className="w-full mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+            >
               View Full Schedule
             </button>
           </div>
@@ -312,10 +351,16 @@ export function PractitionerDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button className="p-1 text-green-600 hover:text-green-700">
+                      <button 
+                        onClick={() => handleCompleteTask(task.id)}
+                        className="p-1 text-green-600 hover:text-green-700"
+                      >
                         <CheckCircle className="h-4 w-4" />
                       </button>
-                      <button className="p-1 text-red-600 hover:text-red-700">
+                      <button 
+                        onClick={() => handleDismissTask(task.id)}
+                        className="p-1 text-red-600 hover:text-red-700"
+                      >
                         <XCircle className="h-4 w-4" />
                       </button>
                     </div>
@@ -335,19 +380,31 @@ export function PractitionerDashboard() {
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
-                <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={handleNewConsultation}
+                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <Stethoscope className="h-6 w-6 text-indigo-600 mb-2" />
                   <span className="text-sm font-medium text-gray-900">New Consultation</span>
                 </button>
-                <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={handleCreateRecord}
+                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <FileText className="h-6 w-6 text-indigo-600 mb-2" />
                   <span className="text-sm font-medium text-gray-900">Create Record</span>
                 </button>
-                <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={handleMessagePatient}
+                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <MessageSquare className="h-6 w-6 text-indigo-600 mb-2" />
                   <span className="text-sm font-medium text-gray-900">Message Patient</span>
                 </button>
-                <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={handleViewAnalytics}
+                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <BarChart3 className="h-6 w-6 text-indigo-600 mb-2" />
                   <span className="text-sm font-medium text-gray-900">View Analytics</span>
                 </button>
@@ -392,20 +449,30 @@ export function PractitionerDashboard() {
       </div>
 
       {/* Clinical Alerts */}
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div className="flex items-start">
-          <AlertTriangle className="h-6 w-6 text-red-600 mt-0.5" />
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Clinical Alerts</h3>
-            <div className="mt-2 text-sm text-red-700">
-              <ul className="list-disc list-inside space-y-1">
-                <li>Robert Davis: Critical blood pressure reading requires immediate attention</li>
-                <li>Michael Chen: HbA1c levels elevated - medication adjustment needed</li>
-              </ul>
+      {showClinicalAlert && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start">
+              <AlertTriangle className="h-6 w-6 text-red-600 mt-0.5" />
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Clinical Alerts</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Robert Davis: Critical blood pressure reading requires immediate attention</li>
+                    <li>Michael Chen: HbA1c levels elevated - medication adjustment needed</li>
+                  </ul>
+                </div>
+              </div>
             </div>
+            <button
+              onClick={handleDismissAlert}
+              className="text-red-600 hover:text-red-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

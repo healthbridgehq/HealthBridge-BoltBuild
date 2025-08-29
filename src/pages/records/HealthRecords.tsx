@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Share2, Download, Filter, Search, Eye, Lock } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 
 interface HealthRecord {
   id: string;
@@ -12,11 +12,14 @@ interface HealthRecord {
 }
 
 export function HealthRecords() {
+  const navigate = useNavigate();
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Mock data for preview
   useEffect(() => {
@@ -55,6 +58,31 @@ export function HealthRecords() {
       }
     ]);
   }, []);
+
+  const handleAddRecord = () => {
+    navigate('/records/add');
+  };
+
+  const handleViewRecord = (recordId: string) => {
+    setSelectedRecord(recordId);
+    // In production, this would open a detailed view modal
+    console.log('Viewing record:', recordId);
+  };
+
+  const handleDownloadRecord = (recordId: string) => {
+    // In production, this would generate and download a PDF
+    console.log('Downloading record:', recordId);
+    alert('Record download started');
+  };
+
+  const handleShareRecord = (recordId: string) => {
+    setSelectedRecord(recordId);
+    navigate('/records/share');
+  };
+
+  const handleShareWithProvider = () => {
+    navigate('/records/share');
+  };
 
   const filteredRecords = records.filter(record => {
     const matchesSearch = record.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,7 +126,7 @@ export function HealthRecords() {
             <h1 className="text-2xl font-bold text-gray-900">Health Records</h1>
           </div>
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={handleAddRecord}
             className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
@@ -174,13 +202,22 @@ export function HealthRecords() {
                 ) : (
                   <Lock className="h-5 w-5 text-gray-400" title="Private" />
                 )}
-                <button className="p-2 text-gray-400 hover:text-gray-600">
+                <button 
+                  onClick={() => handleViewRecord(record.id)}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                >
                   <Eye className="h-4 w-4" />
                 </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600">
+                <button 
+                  onClick={() => handleDownloadRecord(record.id)}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                >
                   <Download className="h-4 w-4" />
                 </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600">
+                <button 
+                  onClick={() => handleShareRecord(record.id)}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                >
                   <Share2 className="h-4 w-4" />
                 </button>
               </div>
@@ -192,10 +229,16 @@ export function HealthRecords() {
             
             <div className="mt-4 flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                <button 
+                  onClick={() => handleViewRecord(record.id)}
+                  className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                >
                   View Details
                 </button>
-                <button className="text-gray-600 hover:text-gray-700 text-sm font-medium">
+                <button 
+                  onClick={handleShareWithProvider}
+                  className="text-gray-600 hover:text-gray-700 text-sm font-medium"
+                >
                   Share with Provider
                 </button>
               </div>
@@ -216,7 +259,7 @@ export function HealthRecords() {
                 : 'You don\'t have any health records yet.'}
             </p>
             <button
-              onClick={() => setShowAddForm(true)}
+              onClick={handleAddRecord}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
             >
               Add Your First Record
