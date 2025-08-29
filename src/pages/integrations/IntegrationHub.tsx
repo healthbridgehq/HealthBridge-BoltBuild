@@ -1,5 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Link, Settings, CheckCircle, XCircle, AlertTriangle, Plus, RefreshCw as Refresh, Download, Upload, Database, Shield, Clock, Activity, Zap, Globe, Key, Eye, EyeOff, FileText, Calendar, Pill, Users, CreditCard, Search, Filter, MoreVertical, Play, Pause, Store as Stop, AlertCircle, CheckSquare, Info } from 'lucide-react';
+import { 
+  Link, 
+  Settings, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  Plus, 
+  RefreshCw as Refresh, 
+  Download, 
+  Upload, 
+  Database, 
+  Shield, 
+  Clock, 
+  Activity, 
+  Zap, 
+  Globe, 
+  Key, 
+  Eye, 
+  EyeOff, 
+  FileText, 
+  Calendar, 
+  Pill, 
+  Users, 
+  CreditCard, 
+  Search, 
+  Filter, 
+  MoreVertical, 
+  Play, 
+  Pause, 
+  Square as Stop, 
+  AlertCircle, 
+  CheckSquare, 
+  Info 
+} from 'lucide-react';
 import { IntegrationSetup } from '../../components/IntegrationSetup';
 import { IntegrationManager } from '../../lib/integrationApi';
 

@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Activity, Menu, X, Bell, Search } from 'lucide-react';
 import { Navigation } from './Navigation';
-import { useAuthStore } from '../stores/authStore';
 
 export function Layout() {
-  const { user, profile } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // For preview mode
   const previewMode = true;
   const mockProfile = { role: 'provider', full_name: 'Dr. Sarah Mitchell' };
-  const currentProfile = previewMode ? mockProfile : profile;
+  const currentProfile = mockProfile;
 
   if (!currentProfile) {
     return null;

@@ -4,32 +4,23 @@ import {
   Edit, 
   Save, 
   X, 
-  Shield, 
-  Bell, 
-  CreditCard, 
-  Users, 
   Phone, 
   Mail, 
   MapPin, 
-  Calendar, 
-  Heart, 
-  AlertTriangle, 
-  Eye, 
-  EyeOff,
-  Download,
-  Upload,
-  Key,
-  Settings,
-  Lock,
+  Calendar,
+  Shield,
+  Bell,
   Globe,
-  Smartphone,
-  Clock,
-  Plus,
-  Trash2,
-  Check,
-  Camera
+  Heart,
+  CreditCard,
+  Users,
+  AlertTriangle,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Camera,
+  Upload
 } from 'lucide-react';
-import { useAuthStore } from '../../stores/authStore';
 
 interface UserProfileData {
   personal: {
@@ -43,71 +34,59 @@ interface UserProfileData {
     culturalBackground: string;
     preferredLanguage: string;
     interpreterRequired: boolean;
-    profilePhotoUrl?: string;
   };
   contact: {
     email: string;
     mobilePhone: string;
     homePhone: string;
     workPhone: string;
-    address: {
+    residentialAddress: {
       street: string;
       suburb: string;
       state: string;
       postcode: string;
-      country: string;
     };
     postalAddress: {
-      same: boolean;
       street: string;
       suburb: string;
       state: string;
       postcode: string;
-      country: string;
     };
+    postalSameAsResidential: boolean;
   };
   healthcare: {
     medicareNumber: string;
     medicareExpiry: string;
     medicarePosition: string;
-    dva: {
-      hasCard: boolean;
-      cardType: string;
-      number: string;
-    };
-    privateHealth: {
-      hasInsurance: boolean;
-      provider: string;
-      membershipNumber: string;
-      level: string;
-    };
-    pensionCard: {
-      hasCard: boolean;
-      type: string;
-      number: string;
-    };
-  };
-  emergency: {
-    contacts: Array<{
-      id: string;
-      name: string;
-      relationship: string;
-      phone: string;
-      email: string;
-      isPrimary: boolean;
-      contactOrder: number;
-    }>;
+    dvaHasCard: boolean;
+    dvaCardType: string;
+    dvaNumber: string;
+    privateHealthHasInsurance: boolean;
+    privateHealthProvider: string;
+    privateHealthNumber: string;
+    privateHealthLevel: string;
+    pensionCardHasCard: boolean;
+    pensionCardType: string;
+    pensionCardNumber: string;
   };
   medical: {
     allergies: string[];
-    medications: string[];
-    conditions: string[];
+    currentMedications: string[];
+    medicalConditions: string[];
     bloodType: string;
     organDonor: boolean;
     advanceDirective: boolean;
-    advanceDirectiveLocation?: string;
-    additionalNotes?: string;
+    advanceDirectiveLocation: string;
+    additionalNotes: string;
   };
+  emergencyContacts: Array<{
+    id: string;
+    name: string;
+    relationship: string;
+    phone: string;
+    email: string;
+    isPrimary: boolean;
+  }>;
   preferences: {
     communication: {
       email: boolean;
@@ -137,149 +116,119 @@ interface UserProfileData {
 }
 
 export function UserProfile() {
-  const { user, profile } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSensitiveData, setShowSensitiveData] = useState(false);
-  const [newAllergy, setNewAllergy] = useState('');
-  const [newMedication, setNewMedication] = useState('');
-  const [newCondition, setNewCondition] = useState('');
-
-  // Mock profile data - in real app, this would come from Supabase
-  useEffect(() => {
-    setProfileData({
-      personal: {
-        title: 'Ms',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        preferredName: 'Sarah',
-        dateOfBirth: '1990-05-15',
-        gender: 'Female',
-        aboriginalTorresStrait: false,
-        culturalBackground: 'Australian',
-        preferredLanguage: 'English',
-        interpreterRequired: false,
-        profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+  const [profileData, setProfileData] = useState<UserProfileData>({
+    personal: {
+      title: 'Ms',
+      firstName: 'Sarah',
+      lastName: 'Johnson',
+      preferredName: 'Sarah',
+      dateOfBirth: '1990-05-15',
+      gender: 'Female',
+      aboriginalTorresStrait: false,
+      culturalBackground: 'Australian',
+      preferredLanguage: 'English',
+      interpreterRequired: false
+    },
+    contact: {
+      email: 'sarah.johnson@email.com',
+      mobilePhone: '0412 345 678',
+      homePhone: '',
+      workPhone: '',
+      residentialAddress: {
+        street: '123 Collins Street',
+        suburb: 'Melbourne',
+        state: 'VIC',
+        postcode: '3000'
       },
-      contact: {
-        email: 'sarah.johnson@email.com',
-        mobilePhone: '0412 345 678',
-        homePhone: '02 9876 5432',
-        workPhone: '',
-        address: {
-          street: '123 Collins Street',
-          suburb: 'Melbourne',
-          state: 'VIC',
-          postcode: '3000',
-          country: 'Australia'
-        },
-        postalAddress: {
-          same: true,
-          street: '',
-          suburb: '',
-          state: '',
-          postcode: '',
-          country: ''
-        }
+      postalAddress: {
+        street: '',
+        suburb: '',
+        state: '',
+        postcode: ''
       },
-      healthcare: {
-        medicareNumber: '1234567890',
-        medicareExpiry: '2025-12-31',
-        medicarePosition: '1',
-        dva: {
-          hasCard: false,
-          cardType: '',
-          number: ''
-        },
-        privateHealth: {
-          hasInsurance: true,
-          provider: 'Medibank Private',
-          membershipNumber: 'MP123456789',
-          level: 'Hospital & Extras'
-        },
-        pensionCard: {
-          hasCard: false,
-          type: '',
-          number: ''
-        }
+      postalSameAsResidential: true
+    },
+    healthcare: {
+      medicareNumber: '1234567890',
+      medicareExpiry: '2026-12-31',
+      medicarePosition: '1',
+      dvaHasCard: false,
+      dvaCardType: '',
+      dvaNumber: '',
+      privateHealthHasInsurance: true,
+      privateHealthProvider: 'Medibank',
+      privateHealthNumber: 'MB123456789',
+      privateHealthLevel: 'Hospital & Extras',
+      pensionCardHasCard: false,
+      pensionCardType: '',
+      pensionCardNumber: ''
+    },
+    medical: {
+      allergies: ['Penicillin', 'Shellfish'],
+      currentMedications: ['Paracetamol 500mg as needed'],
+      medicalConditions: ['Hypertension'],
+      bloodType: 'O+',
+      organDonor: true,
+      advanceDirective: false,
+      advanceDirectiveLocation: '',
+      additionalNotes: 'No additional medical notes'
+    },
+    emergencyContacts: [
+      {
+        id: '1',
+        name: 'John Johnson',
+        relationship: 'Spouse',
+        phone: '0423 456 789',
+        email: 'john.johnson@email.com',
+        isPrimary: true
       },
-      emergency: {
-        contacts: [
-          {
-            id: '1',
-            name: 'John Johnson',
-            relationship: 'Spouse',
-            phone: '0423 456 789',
-            email: 'john.johnson@email.com',
-            isPrimary: true,
-            contactOrder: 1
-          },
-          {
-            id: '2',
-            name: 'Mary Johnson',
-            relationship: 'Mother',
-            phone: '0434 567 890',
-            email: 'mary.johnson@email.com',
-            isPrimary: false,
-            contactOrder: 2
-          }
-        ]
-      },
-      medical: {
-        allergies: ['Penicillin', 'Shellfish'],
-        medications: ['Paracetamol 500mg'],
-        conditions: ['Hypertension'],
-        bloodType: 'O+',
-        organDonor: true,
-        advanceDirective: false,
-        additionalNotes: 'No additional medical notes at this time.'
-      },
-      preferences: {
-        communication: {
-          email: true,
-          sms: true,
-          phone: false,
-          post: false
-        },
-        notifications: {
-          appointments: true,
-          results: true,
-          reminders: true,
-          marketing: false
-        },
-        privacy: {
-          shareWithMHR: true,
-          shareWithSpecialists: true,
-          shareWithPharmacy: true,
-          allowResearch: false
-        },
-        accessibility: {
-          largeText: false,
-          highContrast: false,
-          screenReader: false,
-          audioAlerts: false
-        }
+      {
+        id: '2',
+        name: 'Mary Johnson',
+        relationship: 'Mother',
+        phone: '0434 567 890',
+        email: 'mary.johnson@email.com',
+        isPrimary: false
       }
-    });
-  }, []);
-
-  const tabs = [
-    { id: 'personal', label: 'Personal Details', icon: <User className="h-4 w-4" /> },
-    { id: 'contact', label: 'Contact Information', icon: <Phone className="h-4 w-4" /> },
-    { id: 'healthcare', label: 'Healthcare Cards', icon: <CreditCard className="h-4 w-4" /> },
-    { id: 'emergency', label: 'Emergency Contacts', icon: <Users className="h-4 w-4" /> },
-    { id: 'medical', label: 'Medical Information', icon: <Heart className="h-4 w-4" /> },
-    { id: 'preferences', label: 'Preferences & Privacy', icon: <Settings className="h-4 w-4" /> },
-    { id: 'security', label: 'Security & Access', icon: <Shield className="h-4 w-4" /> }
-  ];
+    ],
+    preferences: {
+      communication: {
+        email: true,
+        sms: true,
+        phone: false,
+        post: false
+      },
+      notifications: {
+        appointments: true,
+        results: true,
+        reminders: true,
+        marketing: false
+      },
+      privacy: {
+        shareWithMHR: true,
+        shareWithSpecialists: true,
+        shareWithPharmacy: true,
+        allowResearch: false
+      },
+      accessibility: {
+        largeText: false,
+        highContrast: false,
+        screenReader: false,
+        audioAlerts: false
+      }
+    }
+  });
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      // In real app, save to Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In production, this would save to Supabase
+      console.log('Saving profile data:', profileData);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -288,129 +237,72 @@ export function UserProfile() {
     }
   };
 
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset form data if needed
+  };
+
   const updateProfileData = (section: keyof UserProfileData, field: string, value: any) => {
-    if (!profileData) return;
-    
     setProfileData(prev => ({
-      ...prev!,
+      ...prev,
       [section]: {
-        ...prev![section],
+        ...prev[section],
         [field]: value
       }
     }));
   };
 
   const addEmergencyContact = () => {
-    if (!profileData) return;
-    
     const newContact = {
       id: Date.now().toString(),
       name: '',
       relationship: '',
       phone: '',
       email: '',
-      isPrimary: false,
-      contactOrder: profileData.emergency.contacts.length + 1
+      isPrimary: false
     };
-    
     setProfileData(prev => ({
-      ...prev!,
-      emergency: {
-        contacts: [...prev!.emergency.contacts, newContact]
-      }
+      ...prev,
+      emergencyContacts: [...prev.emergencyContacts, newContact]
     }));
   };
 
-  const removeEmergencyContact = (contactId: string) => {
-    if (!profileData) return;
-    
+  const removeEmergencyContact = (id: string) => {
     setProfileData(prev => ({
-      ...prev!,
-      emergency: {
-        contacts: prev!.emergency.contacts.filter(c => c.id !== contactId)
-      }
+      ...prev,
+      emergencyContacts: prev.emergencyContacts.filter(contact => contact.id !== id)
     }));
   };
 
-  const addMedicalItem = (type: 'allergies' | 'medications' | 'conditions', value: string) => {
-    if (!profileData || !value.trim()) return;
-    
+  const updateEmergencyContact = (id: string, field: string, value: any) => {
     setProfileData(prev => ({
-      ...prev!,
-      medical: {
-        ...prev!.medical,
-        [type]: [...prev!.medical[type], value.trim()]
-      }
+      ...prev,
+      emergencyContacts: prev.emergencyContacts.map(contact =>
+        contact.id === id ? { ...contact, [field]: value } : contact
+      )
     }));
-    
-    // Clear the input
-    if (type === 'allergies') setNewAllergy('');
-    if (type === 'medications') setNewMedication('');
-    if (type === 'conditions') setNewCondition('');
   };
 
-  const removeMedicalItem = (type: 'allergies' | 'medications' | 'conditions', index: number) => {
-    if (!profileData) return;
-    
-    setProfileData(prev => ({
-      ...prev!,
-      medical: {
-        ...prev!.medical,
-        [type]: prev!.medical[type].filter((_, i) => i !== index)
-      }
-    }));
-  };
+  const tabs = [
+    { id: 'personal', label: 'Personal Details', icon: <User className="h-4 w-4" /> },
+    { id: 'contact', label: 'Contact Information', icon: <Phone className="h-4 w-4" /> },
+    { id: 'healthcare', label: 'Healthcare Cards', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'medical', label: 'Medical Information', icon: <Heart className="h-4 w-4" /> },
+    { id: 'emergency', label: 'Emergency Contacts', icon: <Users className="h-4 w-4" /> },
+    { id: 'preferences', label: 'Preferences', icon: <Bell className="h-4 w-4" /> }
+  ];
 
   const renderPersonalTab = () => (
     <div className="space-y-6">
-      {/* Profile Photo */}
-      <div className="flex items-center space-x-6">
-        <div className="relative">
-          {profileData?.personal.profilePhotoUrl ? (
-            <img
-              src={profileData.personal.profilePhotoUrl}
-              alt="Profile"
-              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-            />
-          ) : (
-            <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-              <span className="text-2xl font-bold text-indigo-600">
-                {profileData?.personal.firstName[0]}{profileData?.personal.lastName[0]}
-              </span>
-            </div>
-          )}
-          {isEditing && (
-            <button className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700">
-              <Camera className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <div>
-          <h3 className="text-lg font-medium text-gray-900">Profile Photo</h3>
-          <p className="text-sm text-gray-500">Upload a photo to help providers identify you</p>
-          {isEditing && (
-            <div className="mt-2 space-x-2">
-              <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-                Upload Photo
-              </button>
-              <button className="text-red-600 hover:text-red-700 text-sm font-medium">
-                Remove
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-          <select 
-            value={profileData?.personal.title || ''}
+          <select
+            value={profileData.personal.title}
             onChange={(e) => updateProfileData('personal', 'title', e.target.value)}
             disabled={!isEditing}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
           >
-            <option value="">Select title</option>
             <option value="Mr">Mr</option>
             <option value="Ms">Ms</option>
             <option value="Mrs">Mrs</option>
@@ -423,7 +315,7 @@ export function UserProfile() {
           <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
           <input
             type="text"
-            value={profileData?.personal.firstName || ''}
+            value={profileData.personal.firstName}
             onChange={(e) => updateProfileData('personal', 'firstName', e.target.value)}
             disabled={!isEditing}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
@@ -435,7 +327,7 @@ export function UserProfile() {
           <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
           <input
             type="text"
-            value={profileData?.personal.lastName || ''}
+            value={profileData.personal.lastName}
             onChange={(e) => updateProfileData('personal', 'lastName', e.target.value)}
             disabled={!isEditing}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
@@ -447,7 +339,7 @@ export function UserProfile() {
           <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Name</label>
           <input
             type="text"
-            value={profileData?.personal.preferredName || ''}
+            value={profileData.personal.preferredName}
             onChange={(e) => updateProfileData('personal', 'preferredName', e.target.value)}
             disabled={!isEditing}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
@@ -458,7 +350,7 @@ export function UserProfile() {
           <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
           <input
             type="date"
-            value={profileData?.personal.dateOfBirth || ''}
+            value={profileData.personal.dateOfBirth}
             onChange={(e) => updateProfileData('personal', 'dateOfBirth', e.target.value)}
             disabled={!isEditing}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
@@ -468,8 +360,8 @@ export function UserProfile() {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-          <select 
-            value={profileData?.personal.gender || ''}
+          <select
+            value={profileData.personal.gender}
             onChange={(e) => updateProfileData('personal', 'gender', e.target.value)}
             disabled={!isEditing}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
@@ -484,63 +376,64 @@ export function UserProfile() {
         </div>
       </div>
       
-      <div className="border-t border-gray-200 pt-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Cultural Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={profileData?.personal.aboriginalTorresStrait || false}
-                onChange={(e) => updateProfileData('personal', 'aboriginalTorresStrait', e.target.checked)}
-                disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">Aboriginal or Torres Strait Islander</span>
-            </label>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cultural Background</label>
-            <input
-              type="text"
-              value={profileData?.personal.culturalBackground || ''}
-              onChange={(e) => updateProfileData('personal', 'culturalBackground', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
-            <select 
-              value={profileData?.personal.preferredLanguage || ''}
-              onChange={(e) => updateProfileData('personal', 'preferredLanguage', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            >
-              <option value="English">English</option>
-              <option value="Mandarin">Mandarin</option>
-              <option value="Arabic">Arabic</option>
-              <option value="Vietnamese">Vietnamese</option>
-              <option value="Italian">Italian</option>
-              <option value="Greek">Greek</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={profileData?.personal.interpreterRequired || false}
-                onChange={(e) => updateProfileData('personal', 'interpreterRequired', e.target.checked)}
-                disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">Interpreter Required</span>
-            </label>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Cultural Background</label>
+          <input
+            type="text"
+            value={profileData.personal.culturalBackground}
+            onChange={(e) => updateProfileData('personal', 'culturalBackground', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
+          <select
+            value={profileData.personal.preferredLanguage}
+            onChange={(e) => updateProfileData('personal', 'preferredLanguage', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+          >
+            <option value="English">English</option>
+            <option value="Mandarin">Mandarin</option>
+            <option value="Arabic">Arabic</option>
+            <option value="Vietnamese">Vietnamese</option>
+            <option value="Italian">Italian</option>
+            <option value="Greek">Greek</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="aboriginal"
+            checked={profileData.personal.aboriginalTorresStrait}
+            onChange={(e) => updateProfileData('personal', 'aboriginalTorresStrait', e.target.checked)}
+            disabled={!isEditing}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+          />
+          <label htmlFor="aboriginal" className="ml-2 block text-sm text-gray-900">
+            Aboriginal and/or Torres Strait Islander
+          </label>
+        </div>
+        
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="interpreter"
+            checked={profileData.personal.interpreterRequired}
+            onChange={(e) => updateProfileData('personal', 'interpreterRequired', e.target.checked)}
+            disabled={!isEditing}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+          />
+          <label htmlFor="interpreter" className="ml-2 block text-sm text-gray-900">
+            Interpreter services required
+          </label>
         </div>
       </div>
     </div>
@@ -548,68 +441,66 @@ export function UserProfile() {
 
   const renderContactTab = () => (
     <div className="space-y-6">
-      {/* Contact Information */}
-      <div>
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Contact Details</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-            <input
-              type="email"
-              value={profileData?.contact.email || ''}
-              onChange={(e) => updateProfileData('contact', 'email', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Phone *</label>
-            <input
-              type="tel"
-              value={profileData?.contact.mobilePhone || ''}
-              onChange={(e) => updateProfileData('contact', 'mobilePhone', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Home Phone</label>
-            <input
-              type="tel"
-              value={profileData?.contact.homePhone || ''}
-              onChange={(e) => updateProfileData('contact', 'homePhone', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Work Phone</label>
-            <input
-              type="tel"
-              value={profileData?.contact.workPhone || ''}
-              onChange={(e) => updateProfileData('contact', 'workPhone', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            />
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+          <input
+            type="email"
+            value={profileData.contact.email}
+            onChange={(e) => updateProfileData('contact', 'email', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Phone *</label>
+          <input
+            type="tel"
+            value={profileData.contact.mobilePhone}
+            onChange={(e) => updateProfileData('contact', 'mobilePhone', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Home Phone</label>
+          <input
+            type="tel"
+            value={profileData.contact.homePhone}
+            onChange={(e) => updateProfileData('contact', 'homePhone', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Work Phone</label>
+          <input
+            type="tel"
+            value={profileData.contact.workPhone}
+            onChange={(e) => updateProfileData('contact', 'workPhone', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+          />
         </div>
       </div>
-
-      {/* Residential Address */}
-      <div className="border-t border-gray-200 pt-6">
+      
+      <div>
         <h4 className="text-lg font-medium text-gray-900 mb-4">Residential Address</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
             <input
               type="text"
-              value={profileData?.contact.address.street || ''}
-              onChange={(e) => updateProfileData('contact', 'address', { ...profileData?.contact.address, street: e.target.value })}
+              value={profileData.contact.residentialAddress.street}
+              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
+                ...profileData.contact.residentialAddress,
+                street: e.target.value
+              })}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               required
@@ -620,8 +511,11 @@ export function UserProfile() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Suburb *</label>
             <input
               type="text"
-              value={profileData?.contact.address.suburb || ''}
-              onChange={(e) => updateProfileData('contact', 'address', { ...profileData?.contact.address, suburb: e.target.value })}
+              value={profileData.contact.residentialAddress.suburb}
+              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
+                ...profileData.contact.residentialAddress,
+                suburb: e.target.value
+              })}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               required
@@ -630,22 +524,25 @@ export function UserProfile() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
-            <select 
-              value={profileData?.contact.address.state || ''}
-              onChange={(e) => updateProfileData('contact', 'address', { ...profileData?.contact.address, state: e.target.value })}
+            <select
+              value={profileData.contact.residentialAddress.state}
+              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
+                ...profileData.contact.residentialAddress,
+                state: e.target.value
+              })}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               required
             >
               <option value="">Select state</option>
-              <option value="NSW">New South Wales</option>
-              <option value="VIC">Victoria</option>
-              <option value="QLD">Queensland</option>
-              <option value="WA">Western Australia</option>
-              <option value="SA">South Australia</option>
-              <option value="TAS">Tasmania</option>
-              <option value="ACT">Australian Capital Territory</option>
-              <option value="NT">Northern Territory</option>
+              <option value="NSW">NSW</option>
+              <option value="VIC">VIC</option>
+              <option value="QLD">QLD</option>
+              <option value="SA">SA</option>
+              <option value="WA">WA</option>
+              <option value="TAS">TAS</option>
+              <option value="NT">NT</option>
+              <option value="ACT">ACT</option>
             </select>
           </div>
           
@@ -653,20 +550,84 @@ export function UserProfile() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Postcode *</label>
             <input
               type="text"
-              value={profileData?.contact.address.postcode || ''}
-              onChange={(e) => updateProfileData('contact', 'address', { ...profileData?.contact.address, postcode: e.target.value })}
+              value={profileData.contact.residentialAddress.postcode}
+              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
+                ...profileData.contact.residentialAddress,
+                postcode: e.target.value
+              })}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               required
             />
           </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderHealthcareTab = () => (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-blue-900">Secure Information</h4>
+            <p className="text-sm text-blue-700 mt-1">
+              Your healthcare card information is encrypted and stored securely according to Australian privacy laws.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Medicare Card */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center space-x-2">
+          <CreditCard className="h-5 w-5 text-green-600" />
+          <span>Medicare Card</span>
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Medicare Number</label>
+            <div className="relative">
+              <input
+                type={showSensitiveData ? 'text' : 'password'}
+                value={profileData.healthcare.medicareNumber}
+                onChange={(e) => updateProfileData('healthcare', 'medicareNumber', e.target.value)}
+                disabled={!isEditing}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSensitiveData(!showSensitiveData)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showSensitiveData ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+            </div>
+          </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
             <input
               type="text"
-              value={profileData?.contact.address.country || 'Australia'}
-              onChange={(e) => updateProfileData('contact', 'address', { ...profileData?.contact.address, country: e.target.value })}
+              value={profileData.healthcare.medicarePosition}
+              onChange={(e) => updateProfileData('healthcare', 'medicarePosition', e.target.value)}
+              disabled={!isEditing}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
+            <input
+              type="date"
+              value={profileData.healthcare.medicareExpiry}
+              onChange={(e) => updateProfileData('healthcare', 'medicareExpiry', e.target.value)}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
             />
@@ -674,75 +635,65 @@ export function UserProfile() {
         </div>
       </div>
 
-      {/* Postal Address */}
-      <div className="border-t border-gray-200 pt-6">
+      {/* Private Health Insurance */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-medium text-gray-900">Postal Address</h4>
-          <label className="flex items-center space-x-2">
+          <h4 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+            <CreditCard className="h-5 w-5 text-purple-600" />
+            <span>Private Health Insurance</span>
+          </h4>
+          <div className="flex items-center">
             <input
               type="checkbox"
-              checked={profileData?.contact.postalAddress.same || false}
-              onChange={(e) => updateProfileData('contact', 'postalAddress', { ...profileData?.contact.postalAddress, same: e.target.checked })}
+              id="hasPrivateHealth"
+              checked={profileData.healthcare.privateHealthHasInsurance}
+              onChange={(e) => updateProfileData('healthcare', 'privateHealthHasInsurance', e.target.checked)}
               disabled={!isEditing}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
             />
-            <span className="text-sm text-gray-700">Same as residential address</span>
-          </label>
+            <label htmlFor="hasPrivateHealth" className="ml-2 text-sm text-gray-900">
+              I have private health insurance
+            </label>
+          </div>
         </div>
         
-        {!profileData?.contact.postalAddress.same && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+        {profileData.healthcare.privateHealthHasInsurance && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
               <input
                 type="text"
-                value={profileData?.contact.postalAddress.street || ''}
-                onChange={(e) => updateProfileData('contact', 'postalAddress', { ...profileData?.contact.postalAddress, street: e.target.value })}
+                value={profileData.healthcare.privateHealthProvider}
+                onChange={(e) => updateProfileData('healthcare', 'privateHealthProvider', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Suburb</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Member Number</label>
               <input
-                type="text"
-                value={profileData?.contact.postalAddress.suburb || ''}
-                onChange={(e) => updateProfileData('contact', 'postalAddress', { ...profileData?.contact.postalAddress, suburb: e.target.value })}
+                type={showSensitiveData ? 'text' : 'password'}
+                value={profileData.healthcare.privateHealthNumber}
+                onChange={(e) => updateProfileData('healthcare', 'privateHealthNumber', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-              <select 
-                value={profileData?.contact.postalAddress.state || ''}
-                onChange={(e) => updateProfileData('contact', 'postalAddress', { ...profileData?.contact.postalAddress, state: e.target.value })}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Coverage Level</label>
+              <select
+                value={profileData.healthcare.privateHealthLevel}
+                onChange={(e) => updateProfileData('healthcare', 'privateHealthLevel', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               >
-                <option value="">Select state</option>
-                <option value="NSW">New South Wales</option>
-                <option value="VIC">Victoria</option>
-                <option value="QLD">Queensland</option>
-                <option value="WA">Western Australia</option>
-                <option value="SA">South Australia</option>
-                <option value="TAS">Tasmania</option>
-                <option value="ACT">Australian Capital Territory</option>
-                <option value="NT">Northern Territory</option>
+                <option value="">Select level</option>
+                <option value="Hospital Only">Hospital Only</option>
+                <option value="Extras Only">Extras Only</option>
+                <option value="Hospital & Extras">Hospital & Extras</option>
               </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
-              <input
-                type="text"
-                value={profileData?.contact.postalAddress.postcode || ''}
-                onChange={(e) => updateProfileData('contact', 'postalAddress', { ...profileData?.contact.postalAddress, postcode: e.target.value })}
-                disabled={!isEditing}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-              />
             </div>
           </div>
         )}
@@ -750,218 +701,82 @@ export function UserProfile() {
     </div>
   );
 
-  const renderHealthcareTab = () => (
+  const renderMedicalTab = () => (
     <div className="space-y-6">
-      {/* Medicare */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <CreditCard className="h-5 w-5 text-green-600" />
-          <h4 className="text-lg font-medium text-gray-900">Medicare Card</h4>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Medicare Number *</label>
-            <div className="relative">
-              <input
-                type={showSensitiveData ? "text" : "password"}
-                value={profileData?.healthcare.medicareNumber || ''}
-                onChange={(e) => updateProfileData('healthcare', 'medicareNumber', e.target.value)}
-                disabled={!isEditing}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowSensitiveData(!showSensitiveData)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                {showSensitiveData ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
-            <input
-              type="date"
-              value={profileData?.healthcare.medicareExpiry || ''}
-              onChange={(e) => updateProfileData('healthcare', 'medicareExpiry', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Position on Card</label>
-            <select 
-              value={profileData?.healthcare.medicarePosition || ''}
-              onChange={(e) => updateProfileData('healthcare', 'medicarePosition', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            >
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
+            <h4 className="font-medium text-red-900">Important Medical Information</h4>
+            <p className="text-sm text-red-700 mt-1">
+              Keep this information up to date for your safety. It will be shared with healthcare providers when necessary.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Private Health Insurance */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Shield className="h-5 w-5 text-blue-600" />
-          <h4 className="text-lg font-medium text-gray-900">Private Health Insurance</h4>
-        </div>
-        <div className="space-y-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={profileData?.healthcare.privateHealth.hasInsurance || false}
-              onChange={(e) => updateProfileData('healthcare', 'privateHealth', { ...profileData?.healthcare.privateHealth, hasInsurance: e.target.checked })}
-              disabled={!isEditing}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm text-gray-700">I have private health insurance</span>
-          </label>
-          
-          {profileData?.healthcare.privateHealth.hasInsurance && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
-                <input
-                  type="text"
-                  value={profileData?.healthcare.privateHealth.provider || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'privateHealth', { ...profileData?.healthcare.privateHealth, provider: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Membership Number</label>
-                <input
-                  type={showSensitiveData ? "text" : "password"}
-                  value={profileData?.healthcare.privateHealth.membershipNumber || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'privateHealth', { ...profileData?.healthcare.privateHealth, membershipNumber: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Coverage Level</label>
-                <select 
-                  value={profileData?.healthcare.privateHealth.level || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'privateHealth', { ...profileData?.healthcare.privateHealth, level: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                >
-                  <option value="">Select level</option>
-                  <option value="Hospital Only">Hospital Only</option>
-                  <option value="Extras Only">Extras Only</option>
-                  <option value="Hospital & Extras">Hospital & Extras</option>
-                </select>
-              </div>
-            </div>
-          )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Blood Type</label>
+          <select
+            value={profileData.medical.bloodType}
+            onChange={(e) => updateProfileData('medical', 'bloodType', e.target.value)}
+            disabled={!isEditing}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+          >
+            <option value="">Unknown</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+          </select>
         </div>
       </div>
 
-      {/* DVA Card */}
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Shield className="h-5 w-5 text-orange-600" />
-          <h4 className="text-lg font-medium text-gray-900">DVA Card</h4>
-        </div>
-        <div className="space-y-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={profileData?.healthcare.dva.hasCard || false}
-              onChange={(e) => updateProfileData('healthcare', 'dva', { ...profileData?.healthcare.dva, hasCard: e.target.checked })}
-              disabled={!isEditing}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm text-gray-700">I have a DVA card</span>
+      <div className="space-y-4">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="organDonor"
+            checked={profileData.medical.organDonor}
+            onChange={(e) => updateProfileData('medical', 'organDonor', e.target.checked)}
+            disabled={!isEditing}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+          />
+          <label htmlFor="organDonor" className="ml-2 block text-sm text-gray-900">
+            Registered organ donor
           </label>
-          
-          {profileData?.healthcare.dva.hasCard && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                <select 
-                  value={profileData?.healthcare.dva.cardType || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'dva', { ...profileData?.healthcare.dva, cardType: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                >
-                  <option value="">Select type</option>
-                  <option value="Gold">Gold Card</option>
-                  <option value="White">White Card</option>
-                  <option value="Orange">Orange Card</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">DVA Number</label>
-                <input
-                  type={showSensitiveData ? "text" : "password"}
-                  value={profileData?.healthcare.dva.number || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'dva', { ...profileData?.healthcare.dva, number: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                />
-              </div>
-            </div>
-          )}
+        </div>
+        
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="advanceDirective"
+            checked={profileData.medical.advanceDirective}
+            onChange={(e) => updateProfileData('medical', 'advanceDirective', e.target.checked)}
+            disabled={!isEditing}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+          />
+          <label htmlFor="advanceDirective" className="ml-2 block text-sm text-gray-900">
+            Have advance directive
+          </label>
         </div>
       </div>
 
-      {/* Pension Card */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <CreditCard className="h-5 w-5 text-purple-600" />
-          <h4 className="text-lg font-medium text-gray-900">Pension/Concession Card</h4>
-        </div>
-        <div className="space-y-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={profileData?.healthcare.pensionCard.hasCard || false}
-              onChange={(e) => updateProfileData('healthcare', 'pensionCard', { ...profileData?.healthcare.pensionCard, hasCard: e.target.checked })}
-              disabled={!isEditing}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm text-gray-700">I have a pension or concession card</span>
-          </label>
-          
-          {profileData?.healthcare.pensionCard.hasCard && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                <select 
-                  value={profileData?.healthcare.pensionCard.type || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'pensionCard', { ...profileData?.healthcare.pensionCard, type: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                >
-                  <option value="">Select type</option>
-                  <option value="Pensioner Concession Card">Pensioner Concession Card</option>
-                  <option value="Health Care Card">Health Care Card</option>
-                  <option value="Commonwealth Seniors Health Card">Commonwealth Seniors Health Card</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
-                <input
-                  type={showSensitiveData ? "text" : "password"}
-                  value={profileData?.healthcare.pensionCard.number || ''}
-                  onChange={(e) => updateProfileData('healthcare', 'pensionCard', { ...profileData?.healthcare.pensionCard, number: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                />
-              </div>
-            </div>
-          )}
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Additional Medical Notes</label>
+        <textarea
+          value={profileData.medical.additionalNotes}
+          onChange={(e) => updateProfileData('medical', 'additionalNotes', e.target.value)}
+          disabled={!isEditing}
+          rows={4}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+          placeholder="Any additional medical information you'd like your healthcare providers to know..."
+        />
       </div>
     </div>
   );
@@ -969,11 +784,11 @@ export function UserProfile() {
   const renderEmergencyTab = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h4 className="text-lg font-medium text-gray-900">Emergency Contacts</h4>
+        <h3 className="text-lg font-medium text-gray-900">Emergency Contacts</h3>
         {isEditing && (
           <button
             onClick={addEmergencyContact}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
+            className="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 text-sm flex items-center space-x-1"
           >
             <Plus className="h-4 w-4" />
             <span>Add Contact</span>
@@ -982,13 +797,13 @@ export function UserProfile() {
       </div>
 
       <div className="space-y-4">
-        {profileData?.emergency.contacts.map((contact, index) => (
-          <div key={contact.id} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        {profileData.emergencyContacts.map((contact, index) => (
+          <div key={contact.id} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-900">Contact {index + 1}</span>
                 {contact.isPrimary && (
-                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                     Primary
                   </span>
                 )}
@@ -998,45 +813,29 @@ export function UserProfile() {
                   onClick={() => removeEmergencyContact(contact.id)}
                   className="text-red-600 hover:text-red-700"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
                   type="text"
                   value={contact.name}
-                  onChange={(e) => {
-                    const updatedContacts = profileData?.emergency.contacts.map(c => 
-                      c.id === contact.id ? { ...c, name: e.target.value } : c
-                    );
-                    setProfileData(prev => ({
-                      ...prev!,
-                      emergency: { contacts: updatedContacts || [] }
-                    }));
-                  }}
+                  onChange={(e) => updateEmergencyContact(contact.id, 'name', e.target.value)}
                   disabled={!isEditing}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
                   required
                 />
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Relationship *</label>
                 <select
                   value={contact.relationship}
-                  onChange={(e) => {
-                    const updatedContacts = profileData?.emergency.contacts.map(c => 
-                      c.id === contact.id ? { ...c, relationship: e.target.value } : c
-                    );
-                    setProfileData(prev => ({
-                      ...prev!,
-                      emergency: { contacts: updatedContacts || [] }
-                    }));
-                  }}
+                  onChange={(e) => updateEmergencyContact(contact.id, 'relationship', e.target.value)}
                   disabled={!isEditing}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
                   required
@@ -1051,306 +850,47 @@ export function UserProfile() {
                   <option value="Other">Other</option>
                 </select>
               </div>
-
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
                 <input
                   type="tel"
                   value={contact.phone}
-                  onChange={(e) => {
-                    const updatedContacts = profileData?.emergency.contacts.map(c => 
-                      c.id === contact.id ? { ...c, phone: e.target.value } : c
-                    );
-                    setProfileData(prev => ({
-                      ...prev!,
-                      emergency: { contacts: updatedContacts || [] }
-                    }));
-                  }}
+                  onChange={(e) => updateEmergencyContact(contact.id, 'phone', e.target.value)}
                   disabled={!isEditing}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
                   required
                 />
               </div>
-
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input
                   type="email"
                   value={contact.email}
-                  onChange={(e) => {
-                    const updatedContacts = profileData?.emergency.contacts.map(c => 
-                      c.id === contact.id ? { ...c, email: e.target.value } : c
-                    );
-                    setProfileData(prev => ({
-                      ...prev!,
-                      emergency: { contacts: updatedContacts || [] }
-                    }));
-                  }}
+                  onChange={(e) => updateEmergencyContact(contact.id, 'email', e.target.value)}
                   disabled={!isEditing}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
                 />
               </div>
-
-              <div className="md:col-span-2">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={contact.isPrimary}
-                    onChange={(e) => {
-                      const updatedContacts = profileData?.emergency.contacts.map(c => 
-                        c.id === contact.id ? { ...c, isPrimary: e.target.checked } : { ...c, isPrimary: false }
-                      );
-                      setProfileData(prev => ({
-                        ...prev!,
-                        emergency: { contacts: updatedContacts || [] }
-                      }));
-                    }}
-                    disabled={!isEditing}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-gray-700">Primary emergency contact</span>
+            </div>
+            
+            {isEditing && (
+              <div className="mt-4 flex items-center">
+                <input
+                  type="checkbox"
+                  id={`primary-${contact.id}`}
+                  checked={contact.isPrimary}
+                  onChange={(e) => updateEmergencyContact(contact.id, 'isPrimary', e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label htmlFor={`primary-${contact.id}`} className="ml-2 text-sm text-gray-900">
+                  Primary emergency contact
                 </label>
               </div>
-            </div>
-          </div>
-        ))}
-
-        {profileData?.emergency.contacts.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>No emergency contacts added yet</p>
-            {isEditing && (
-              <button
-                onClick={addEmergencyContact}
-                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-              >
-                Add Emergency Contact
-              </button>
             )}
           </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderMedicalTab = () => (
-    <div className="space-y-6">
-      {/* Allergies */}
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-medium text-gray-900">Allergies</h4>
-          <AlertTriangle className="h-5 w-5 text-red-600" />
-        </div>
-        
-        <div className="space-y-3">
-          {profileData?.medical.allergies.map((allergy, index) => (
-            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-md">
-              <span className="text-gray-900">{allergy}</span>
-              {isEditing && (
-                <button
-                  onClick={() => removeMedicalItem('allergies', index)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-          
-          {isEditing && (
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={newAllergy}
-                onChange={(e) => setNewAllergy(e.target.value)}
-                placeholder="Add new allergy..."
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <button
-                onClick={() => addMedicalItem('allergies', newAllergy)}
-                disabled={!newAllergy.trim()}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          )}
-          
-          {profileData?.medical.allergies.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No known allergies</p>
-          )}
-        </div>
-      </div>
-
-      {/* Current Medications */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-medium text-gray-900">Current Medications</h4>
-          <Heart className="h-5 w-5 text-blue-600" />
-        </div>
-        
-        <div className="space-y-3">
-          {profileData?.medical.medications.map((medication, index) => (
-            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-md">
-              <span className="text-gray-900">{medication}</span>
-              {isEditing && (
-                <button
-                  onClick={() => removeMedicalItem('medications', index)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-          
-          {isEditing && (
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={newMedication}
-                onChange={(e) => setNewMedication(e.target.value)}
-                placeholder="Add current medication..."
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <button
-                onClick={() => addMedicalItem('medications', newMedication)}
-                disabled={!newMedication.trim()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          )}
-          
-          {profileData?.medical.medications.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No current medications</p>
-          )}
-        </div>
-      </div>
-
-      {/* Medical Conditions */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-medium text-gray-900">Medical Conditions</h4>
-          <Heart className="h-5 w-5 text-yellow-600" />
-        </div>
-        
-        <div className="space-y-3">
-          {profileData?.medical.conditions.map((condition, index) => (
-            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-md">
-              <span className="text-gray-900">{condition}</span>
-              {isEditing && (
-                <button
-                  onClick={() => removeMedicalItem('conditions', index)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-          
-          {isEditing && (
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={newCondition}
-                onChange={(e) => setNewCondition(e.target.value)}
-                placeholder="Add medical condition..."
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <button
-                onClick={() => addMedicalItem('conditions', newCondition)}
-                disabled={!newCondition.trim()}
-                className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          )}
-          
-          {profileData?.medical.conditions.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No known medical conditions</p>
-          )}
-        </div>
-      </div>
-
-      {/* Additional Medical Information */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Additional Medical Information</h4>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Blood Type</label>
-            <select
-              value={profileData?.medical.bloodType || ''}
-              onChange={(e) => updateProfileData('medical', 'bloodType', e.target.value)}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            >
-              <option value="">Unknown</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
-            </select>
-          </div>
-
-          <div className="space-y-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={profileData?.medical.organDonor || false}
-                onChange={(e) => updateProfileData('medical', 'organDonor', e.target.checked)}
-                disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">Organ donor</span>
-            </label>
-
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={profileData?.medical.advanceDirective || false}
-                onChange={(e) => updateProfileData('medical', 'advanceDirective', e.target.checked)}
-                disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">Advance directive in place</span>
-            </label>
-          </div>
-        </div>
-
-        {profileData?.medical.advanceDirective && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Advance Directive Location</label>
-            <input
-              type="text"
-              value={profileData?.medical.advanceDirectiveLocation || ''}
-              onChange={(e) => updateProfileData('medical', 'advanceDirectiveLocation', e.target.value)}
-              disabled={!isEditing}
-              placeholder="Where is your advance directive stored?"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            />
-          </div>
-        )}
-
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
-          <textarea
-            value={profileData?.medical.additionalNotes || ''}
-            onChange={(e) => updateProfileData('medical', 'additionalNotes', e.target.value)}
-            disabled={!isEditing}
-            rows={3}
-            placeholder="Any additional medical information..."
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          />
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -1359,338 +899,135 @@ export function UserProfile() {
     <div className="space-y-6">
       {/* Communication Preferences */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Mail className="h-5 w-5 text-indigo-600" />
-          <h4 className="text-lg font-medium text-gray-900">Communication Preferences</h4>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">Choose how you'd like to receive communications from healthcare providers</p>
+        <h4 className="text-lg font-medium text-gray-900 mb-4">Communication Preferences</h4>
         <div className="space-y-3">
-          {Object.entries(profileData?.preferences.communication || {}).map(([key, value]) => (
-            <label key={key} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => updateProfileData('preferences', 'communication', { ...profileData?.preferences.communication, [key]: e.target.checked })}
+          {Object.entries(profileData.preferences.communication).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between">
+              <label className="text-sm text-gray-700 capitalize">
+                {key === 'sms' ? 'SMS' : key}
+              </label>
+              <button
+                onClick={() => updateProfileData('preferences', 'communication', {
+                  ...profileData.preferences.communication,
+                  [key]: !value
+                })}
                 disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700 capitalize">
-                {key === 'sms' ? 'SMS/Text Messages' : key.replace(/([A-Z])/g, ' $1')}
-              </span>
-            </label>
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  value ? 'bg-indigo-600' : 'bg-gray-200'
+                } disabled:opacity-50`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    value ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Notification Settings */}
+      {/* Notification Preferences */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Bell className="h-5 w-5 text-indigo-600" />
-          <h4 className="text-lg font-medium text-gray-900">Notification Settings</h4>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">Manage what notifications you receive</p>
+        <h4 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h4>
         <div className="space-y-3">
-          {Object.entries(profileData?.preferences.notifications || {}).map(([key, value]) => (
-            <label key={key} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => updateProfileData('preferences', 'notifications', { ...profileData?.preferences.notifications, [key]: e.target.checked })}
+          {Object.entries(profileData.preferences.notifications).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between">
+              <label className="text-sm text-gray-700 capitalize">
+                {key}
+              </label>
+              <button
+                onClick={() => updateProfileData('preferences', 'notifications', {
+                  ...profileData.preferences.notifications,
+                  [key]: !value
+                })}
                 disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-            </label>
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  value ? 'bg-indigo-600' : 'bg-gray-200'
+                } disabled:opacity-50`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    value ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Privacy Settings */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Lock className="h-5 w-5 text-yellow-600" />
-          <h4 className="text-lg font-medium text-gray-900">Privacy & Data Sharing</h4>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">Control how your health information is shared</p>
+      {/* Privacy Preferences */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h4 className="text-lg font-medium text-gray-900 mb-4">Privacy & Data Sharing</h4>
         <div className="space-y-3">
-          {Object.entries(profileData?.preferences.privacy || {}).map(([key, value]) => (
-            <label key={key} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => updateProfileData('preferences', 'privacy', { ...profileData?.preferences.privacy, [key]: e.target.checked })}
+          {Object.entries(profileData.preferences.privacy).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">
+                {key === 'shareWithMHR' ? 'Share with My Health Record' :
+                 key === 'shareWithSpecialists' ? 'Share with Specialists' :
+                 key === 'shareWithPharmacy' ? 'Share with Pharmacy' :
+                 key === 'allowResearch' ? 'Allow Research Use' : key}
+              </label>
+              <button
+                onClick={() => updateProfileData('preferences', 'privacy', {
+                  ...profileData.preferences.privacy,
+                  [key]: !value
+                })}
                 disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">
-                {key === 'shareWithMHR' && 'Share with My Health Record'}
-                {key === 'shareWithSpecialists' && 'Share with referred specialists'}
-                {key === 'shareWithPharmacy' && 'Share with pharmacy'}
-                {key === 'allowResearch' && 'Allow use of de-identified data for research'}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Accessibility Settings */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Eye className="h-5 w-5 text-purple-600" />
-          <h4 className="text-lg font-medium text-gray-900">Accessibility Options</h4>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">Customize the interface to meet your accessibility needs</p>
-        <div className="space-y-3">
-          {Object.entries(profileData?.preferences.accessibility || {}).map(([key, value]) => (
-            <label key={key} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => updateProfileData('preferences', 'accessibility', { ...profileData?.preferences.accessibility, [key]: e.target.checked })}
-                disabled={!isEditing}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-            </label>
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  value ? 'bg-indigo-600' : 'bg-gray-200'
+                } disabled:opacity-50`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    value ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
           ))}
         </div>
       </div>
     </div>
   );
-
-  const renderSecurityTab = () => (
-    <div className="space-y-6">
-      {/* Account Security */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Account Security</h4>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Key className="h-5 w-5 text-gray-600" />
-              <div>
-                <p className="font-medium text-gray-900">Password</p>
-                <p className="text-sm text-gray-500">Last changed 30 days ago</p>
-              </div>
-            </div>
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-              Change Password
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Smartphone className="h-5 w-5 text-gray-600" />
-              <div>
-                <p className="font-medium text-gray-900">Two-Factor Authentication</p>
-                <p className="text-sm text-gray-500">Not enabled</p>
-              </div>
-            </div>
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-              Enable 2FA
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Shield className="h-5 w-5 text-gray-600" />
-              <div>
-                <p className="font-medium text-gray-900">Encryption Keys</p>
-                <p className="text-sm text-gray-500">Your data is encrypted with your personal keys</p>
-              </div>
-            </div>
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-              Manage Keys
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Login Activity */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Recent Login Activity</h4>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Globe className="h-4 w-4 text-gray-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Chrome on Windows</p>
-                <p className="text-xs text-gray-500">Melbourne, VIC • Current session</p>
-              </div>
-            </div>
-            <span className="text-xs text-green-600 flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Active</span>
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Smartphone className="h-4 w-4 text-gray-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Mobile App</p>
-                <p className="text-xs text-gray-500">Melbourne, VIC • 2 hours ago</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500">Ended</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Globe className="h-4 w-4 text-gray-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Safari on macOS</p>
-                <p className="text-xs text-gray-500">Sydney, NSW • Yesterday</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500">Ended</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Data Management */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Data Management</h4>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900">Export Your Data</p>
-              <p className="text-sm text-gray-500">Download a copy of all your health data</p>
-            </div>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2">
-              <Download className="h-4 w-4" />
-              <span>Export</span>
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900">Backup Data</p>
-              <p className="text-sm text-gray-500">Create an encrypted backup of your profile</p>
-            </div>
-            <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2">
-              <Upload className="h-4 w-4" />
-              <span>Backup</span>
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900">Delete Account</p>
-              <p className="text-sm text-gray-500">Permanently delete your account and all data</p>
-            </div>
-            <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
-              Delete Account
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Audit Log */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Recent Account Activity</h4>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <Clock className="h-4 w-4 text-gray-600" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Profile updated</p>
-              <p className="text-xs text-gray-500">Contact information changed • 2 hours ago</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <Shield className="h-4 w-4 text-gray-600" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Privacy settings updated</p>
-              <p className="text-xs text-gray-500">Data sharing preferences changed • Yesterday</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <Key className="h-4 w-4 text-gray-600" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Password changed</p>
-              <p className="text-xs text-gray-500">Account password updated • 30 days ago</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (!profileData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin">
-          <User className="h-8 w-8 text-indigo-600" />
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              {profileData.personal.profilePhotoUrl ? (
-                <img
-                  src={profileData.personal.profilePhotoUrl}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-                  <span className="text-xl font-bold text-indigo-600">
-                    {profileData.personal.firstName[0]}{profileData.personal.lastName[0]}
-                  </span>
-                </div>
-              )}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
-                <Check className="h-3 w-3 text-white" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {profileData.personal.title} {profileData.personal.firstName} {profileData.personal.lastName}
-              </h1>
-              <p className="text-gray-500">Patient Profile • Verified</p>
-              <div className="flex items-center space-x-4 mt-1">
-                <span className="text-sm text-gray-500">
-                  Age: {new Date().getFullYear() - new Date(profileData.personal.dateOfBirth).getFullYear()}
-                </span>
-                <span className="text-sm text-gray-500">•</span>
-                <span className="text-sm text-gray-500">
-                  Medicare: ****{profileData.healthcare.medicareNumber.slice(-4)}
-                </span>
-              </div>
-            </div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-2">
+            <User className="h-6 w-6 text-indigo-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Profile & Settings</h1>
           </div>
-          
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {isEditing ? (
               <>
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 flex items-center space-x-2"
+                  onClick={handleCancel}
+                  disabled={loading}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <X className="h-4 w-4" />
-                  <span>Cancel</span>
+                  Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
                 >
-                  <Save className="h-4 w-4" />
-                  <span>{loading ? 'Saving...' : 'Save Changes'}</span>
+                  {loading ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>Save Changes</span>
                 </button>
               </>
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center space-x-2"
               >
                 <Edit className="h-4 w-4" />
                 <span>Edit Profile</span>
@@ -1698,17 +1035,15 @@ export function UserProfile() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {/* Navigation Tabs */}
         <div className="border-b border-gray-200">
-          <nav className="flex overflow-x-auto">
+          <nav className="flex space-x-8">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1720,17 +1055,16 @@ export function UserProfile() {
             ))}
           </nav>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          {activeTab === 'personal' && renderPersonalTab()}
-          {activeTab === 'contact' && renderContactTab()}
-          {activeTab === 'healthcare' && renderHealthcareTab()}
-          {activeTab === 'emergency' && renderEmergencyTab()}
-          {activeTab === 'medical' && renderMedicalTab()}
-          {activeTab === 'preferences' && renderPreferencesTab()}
-          {activeTab === 'security' && renderSecurityTab()}
-        </div>
+      {/* Tab Content */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {activeTab === 'personal' && renderPersonalTab()}
+        {activeTab === 'contact' && renderContactTab()}
+        {activeTab === 'healthcare' && renderHealthcareTab()}
+        {activeTab === 'medical' && renderMedicalTab()}
+        {activeTab === 'emergency' && renderEmergencyTab()}
+        {activeTab === 'preferences' && renderPreferencesTab()}
       </div>
     </div>
   );

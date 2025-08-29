@@ -131,8 +131,22 @@ function App() {
         </Route>
         
         {/* Auth Routes */}
-        <Route path="/login" element={<div>Login Page</div>} />
-        <Route path="/register" element={<div>Register Page</div>} />
+        <Route path="/login" element={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+              <h2 className="text-2xl font-bold text-center mb-6">Login to HealthBridge</h2>
+              <p className="text-gray-600 text-center">Authentication system will be implemented here</p>
+            </div>
+          </div>
+        } />
+        <Route path="/register" element={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+              <h2 className="text-2xl font-bold text-center mb-6">Register for HealthBridge</h2>
+              <p className="text-gray-600 text-center">Registration system will be implemented here</p>
+            </div>
+          </div>
+        } />
       </Routes>
     </Router>
   );

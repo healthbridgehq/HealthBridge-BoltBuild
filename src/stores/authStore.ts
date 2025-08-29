@@ -80,15 +80,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.removeItem('privateKey');
   },
   loadUser: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      set({ user, profile, loading: false });
-    } else {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        set({ user, profile, loading: false });
+      } else {
+        set({ user: null, profile: null, loading: false });
+      }
+    } catch (error) {
+      console.warn('Auth loading failed, using preview mode:', error);
       set({ user: null, profile: null, loading: false });
     }
   }

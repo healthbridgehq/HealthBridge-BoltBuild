@@ -14,13 +14,12 @@ import {
   Settings,
   Video,
   CreditCard,
-  LinkIcon,
+  Link as LinkIcon,
   Stethoscope,
   Activity,
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
-import { useAuthStore } from '../stores/authStore';
 
 interface NavigationProps {
   userRole: 'patient' | 'provider';
