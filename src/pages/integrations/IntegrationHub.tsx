@@ -755,9 +755,9 @@ export function IntegrationHub() {
   };
 
   if (loading) {
-    return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, i) => (
@@ -768,23 +768,8 @@ export function IntegrationHub() {
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-48 bg-gray-200 rounded"></div>
               ))}
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 p-2"
-              >
-                <Refresh className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
             </div>
           </div>
-          
-          {templates.length === 0 && (
-            <div className="text-center py-12">
-              <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No templates available</h3>
-              <p className="text-gray-500">Integration templates will be loaded here.</p>
-            </div>
-          )}
         </div>
       </div>
     );
