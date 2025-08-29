@@ -85,29 +85,38 @@ export function PatientDashboard() {
         {
           id: '1',
           name: 'Blood Pressure',
-          value: '120/80',
+          value: '118/76',
           unit: 'mmHg',
-          trend: 'stable',
+          trend: 'down',
           status: 'good',
-          lastUpdated: '2025-01-15'
+          lastUpdated: '2025-01-16'
         },
         {
           id: '2',
           name: 'Weight',
-          value: '68',
+          value: '67.5',
           unit: 'kg',
           trend: 'down',
           status: 'good',
-          lastUpdated: '2025-01-14'
+          lastUpdated: '2025-01-16'
         },
         {
           id: '3',
           name: 'Heart Rate',
-          value: '72',
+          value: '68',
           unit: 'bpm',
-          trend: 'stable',
+          trend: 'down',
           status: 'good',
-          lastUpdated: '2025-01-15'
+          lastUpdated: '2025-01-16'
+        },
+        {
+          id: '4',
+          name: 'Steps Today',
+          value: '8,247',
+          unit: 'steps',
+          trend: 'up',
+          status: 'good',
+          lastUpdated: '2025-01-16'
         }
       ];
 
@@ -115,7 +124,7 @@ export function PatientDashboard() {
         {
           id: '1',
           provider_name: 'Dr. Sarah Johnson',
-          appointment_type: 'Annual Health Check',
+          appointment_type: 'Follow-up Consultation',
           date: '2025-01-20',
           time: '10:00',
           method: 'in_person',
@@ -128,6 +137,15 @@ export function PatientDashboard() {
           date: '2025-01-25',
           time: '14:30',
           method: 'telehealth'
+        },
+        {
+          id: '3',
+          provider_name: 'Dr. Emily Davis',
+          provider_type: 'Dermatology',
+          date: '2025-02-05',
+          time: '09:30',
+          method: 'in_person',
+          location: 'Skin Cancer Clinic'
         }
       ];
 
@@ -141,10 +159,17 @@ export function PatientDashboard() {
         },
         {
           id: '2',
-          title: 'General Consultation',
+          title: 'Annual Health Check',
           type: 'consultation',
-          date: '2025-01-10',
+          date: '2025-01-15',
           provider: 'Dr. Sarah Johnson'
+        },
+        {
+          id: '3',
+          title: 'Prescription Update',
+          type: 'prescription',
+          date: '2025-01-14',
+          provider: 'Dr. Michael Chen'
         }
       ];
 
@@ -154,7 +179,7 @@ export function PatientDashboard() {
           name: 'Paracetamol',
           dosage: '500mg',
           frequency: 'As needed',
-          next_dose: 'N/A'
+          next_dose: 'Take as needed for pain'
         },
         {
           id: '2',
@@ -162,6 +187,13 @@ export function PatientDashboard() {
           dosage: '20mg',
           frequency: 'Daily',
           next_dose: 'Tonight 8:00 PM'
+        },
+        {
+          id: '3',
+          name: 'Vitamin D',
+          dosage: '1000IU',
+          frequency: 'Daily',
+          next_dose: 'Tomorrow morning'
         }
       ];
 
@@ -172,7 +204,7 @@ export function PatientDashboard() {
       setUpcomingAppointments(mockAppointments);
       setRecentRecords(mockRecords);
       setCurrentMedications(mockMedications);
-      setHealthScore(85);
+      setHealthScore(87);
       
     } catch (err) {
       setError('Failed to load dashboard data');
@@ -239,6 +271,11 @@ export function PatientDashboard() {
   };
 
   const handleViewGoals = () => {
+    addNotification({
+      type: 'info',
+      title: 'Health Goals',
+      message: 'Opening your health goals and progress tracking.'
+    });
     navigate('/health-goals');
   };
 
@@ -320,15 +357,29 @@ export function PatientDashboard() {
       </div>
 
       {/* Health Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Health Score */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 text-white">
+        <div 
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 text-white cursor-pointer hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+          onClick={() => {
+            addNotification({
+              type: 'info',
+              title: 'Health Score Details',
+              message: 'Your health score is calculated from recent vitals, activity, and health goals progress.'
+            });
+            navigate('/health-goals');
+          }}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-indigo-100">Health Score</p>
               <p className="text-3xl font-bold">{healthScore}/100</p>
+              <p className="text-sm text-indigo-200 mt-1">+2 from last week</p>
             </div>
-            <Heart className="h-8 w-8 text-indigo-200" />
+            <div className="relative">
+              <Heart className="h-8 w-8 text-indigo-200" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            </div>
           </div>
           <div className="mt-4">
             <div className="bg-white bg-opacity-20 rounded-full h-2">
@@ -337,22 +388,47 @@ export function PatientDashboard() {
                 style={{ width: `${healthScore}%` }}
               ></div>
             </div>
+            <p className="text-xs text-indigo-200 mt-2">Click to view health goals</p>
           </div>
         </div>
 
         {/* Next Appointment */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div 
+          className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all duration-200"
+          onClick={() => {
+            if (upcomingAppointments.length > 0) {
+              addNotification({
+                type: 'info',
+                title: 'Appointment Details',
+                message: `Viewing details for appointment with ${upcomingAppointments[0].provider_name}.`
+              });
+              navigate('/appointments');
+            } else {
+              handleBookAppointment();
+            }
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Calendar className="h-5 w-5 text-blue-600" />
               <h3 className="font-medium text-gray-900">Next Appointment</h3>
             </div>
-            <button
-              onClick={handleBookAppointment}
-              className="text-blue-600 hover:text-blue-700 text-sm"
-            >
-              Book New
-            </button>
+            <div className="flex items-center space-x-2">
+              {upcomingAppointments.length > 0 && (
+                <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                  Confirmed
+                </span>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBookAppointment();
+                }}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                Book New
+              </button>
+            </div>
           </div>
           {upcomingAppointments.length > 0 ? (
             <div>
@@ -361,10 +437,24 @@ export function PatientDashboard() {
               <p className="text-sm text-gray-500 mt-1">
                 {new Date(upcomingAppointments[0].date).toLocaleDateString('en-AU')} at {upcomingAppointments[0].time}
               </p>
+              <div className="flex items-center space-x-2 mt-2">
+                <div className="flex items-center space-x-1">
+                  {getMethodIcon(upcomingAppointments[0].method)}
+                  <span className="text-xs text-gray-500 capitalize">
+                    {upcomingAppointments[0].method.replace('_', ' ')}
+                  </span>
+                </div>
+                {upcomingAppointments[0].location && (
+                  <span className="text-xs text-gray-500">• {upcomingAppointments[0].location}</span>
+                )}
+              </div>
               {upcomingAppointments[0].method === 'telehealth' && (
                 <button
-                  onClick={() => handleJoinTelehealth(upcomingAppointments[0].id)}
-                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center space-x-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleJoinTelehealth(upcomingAppointments[0].id);
+                  }}
+                  className="mt-3 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center space-x-1 transition-colors"
                 >
                   <Video className="h-3 w-3" />
                   <span>Join Video</span>
@@ -372,79 +462,187 @@ export function PatientDashboard() {
               )}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">No upcoming appointments</p>
+            <div className="text-center py-4">
+              <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500 text-sm mb-2">No upcoming appointments</p>
+              <p className="text-xs text-blue-600">Click to book your next appointment</p>
+            </div>
           )}
         </div>
 
         {/* Medications */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div 
+          className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-green-300 transition-all duration-200"
+          onClick={() => {
+            addNotification({
+              type: 'info',
+              title: 'Medications Overview',
+              message: 'Viewing your current medications and prescription history.'
+            });
+            handleViewMedications();
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Pill className="h-5 w-5 text-green-600" />
               <h3 className="font-medium text-gray-900">Medications</h3>
             </div>
-            <button
-              onClick={handleViewMedications}
-              className="text-green-600 hover:text-green-700 text-sm"
-            >
-              View All
-            </button>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {currentMedications.length} active
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewMedications();
+                }}
+                className="text-green-600 hover:text-green-700 text-sm font-medium"
+              >
+                View All
+              </button>
+            </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {currentMedications.slice(0, 2).map((medication) => (
-              <div key={medication.id} className="text-sm">
-                <p className="font-medium text-gray-900">{medication.name} {medication.dosage}</p>
-                <p className="text-gray-500">{medication.frequency}</p>
+              <div key={medication.id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{medication.name} {medication.dosage}</p>
+                    <p className="text-xs text-gray-500">{medication.frequency}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-600">{medication.next_dose}</p>
+                  </div>
+                </div>
               </div>
             ))}
+            {currentMedications.length > 2 && (
+              <p className="text-xs text-gray-500 text-center">
+                +{currentMedications.length - 2} more medications
+              </p>
+            )}
           </div>
         </div>
 
         {/* Health Records */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div 
+          className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all duration-200"
+          onClick={() => {
+            addNotification({
+              type: 'info',
+              title: 'Health Records',
+              message: 'Accessing your complete health record history.'
+            });
+            handleViewRecords();
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <FileText className="h-5 w-5 text-purple-600" />
               <h3 className="font-medium text-gray-900">Recent Records</h3>
             </div>
-            <button
-              onClick={handleViewRecords}
-              className="text-purple-600 hover:text-purple-700 text-sm"
-            >
-              View All
-            </button>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {recentRecords.length} recent
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewRecords();
+                }}
+                className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+              >
+                View All
+              </button>
+            </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {recentRecords.slice(0, 2).map((record) => (
-              <div key={record.id} className="text-sm">
-                <p className="font-medium text-gray-900">{record.title}</p>
-                <p className="text-gray-500">{new Date(record.date).toLocaleDateString('en-AU')}</p>
+              <div key={record.id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{record.title}</p>
+                    <p className="text-xs text-gray-500">{record.provider}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-600">{new Date(record.date).toLocaleDateString('en-AU')}</p>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      record.type === 'test_result' ? 'bg-blue-100 text-blue-700' :
+                      record.type === 'consultation' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {record.type.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
+            {recentRecords.length > 2 && (
+              <p className="text-xs text-gray-500 text-center">
+                +{recentRecords.length - 2} more records
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Health Metrics */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Latest Health Metrics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-gray-900">Latest Health Metrics</h2>
+          <button
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Health Trends',
+                message: 'Viewing detailed health metrics and trends.'
+              });
+            }}
+            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+          >
+            View Trends
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {healthMetrics.map((metric) => (
-            <div key={metric.id} className="border border-gray-200 rounded-lg p-4">
+            <div 
+              key={metric.id} 
+              className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all duration-200 transform hover:scale-105"
+              onClick={() => {
+                addNotification({
+                  type: 'info',
+                  title: `${metric.name} Details`,
+                  message: `Current ${metric.name.toLowerCase()}: ${metric.value} ${metric.unit}. Last updated ${new Date(metric.lastUpdated).toLocaleDateString('en-AU')}.`
+                });
+              }}
+            >
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium text-gray-900">{metric.name}</h4>
-                {getTrendIcon(metric.trend)}
+                <div className="flex items-center space-x-1">
+                  {getTrendIcon(metric.trend)}
+                  <span className={`text-xs ${
+                    metric.trend === 'up' ? 'text-green-600' :
+                    metric.trend === 'down' ? 'text-blue-600' :
+                    'text-gray-600'
+                  }`}>
+                    {metric.trend === 'up' ? '↗' : metric.trend === 'down' ? '↘' : '→'}
+                  </span>
+                </div>
               </div>
               <div className="flex items-baseline space-x-2">
                 <span className="text-2xl font-bold text-gray-900">{metric.value}</span>
                 <span className="text-sm text-gray-500">{metric.unit}</span>
               </div>
-              <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${getMetricStatusColor(metric.status)}`}>
-                {metric.status}
+              <div className="flex items-center justify-between mt-3">
+                <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getMetricStatusColor(metric.status)}`}>
+                  {metric.status}
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
+                    {new Date(metric.lastUpdated).toLocaleDateString('en-AU')}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Updated {new Date(metric.lastUpdated).toLocaleDateString('en-AU')}
-              </p>
             </div>
           ))}
         </div>
@@ -452,54 +650,171 @@ export function PatientDashboard() {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+          <p className="text-sm text-gray-500">Click any action to get started</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <button 
             onClick={handleBookAppointment}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex flex-col items-center p-6 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 transform hover:scale-105 group"
           >
-            <Calendar className="h-6 w-6 text-indigo-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Book Appointment</span>
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
+              <Calendar className="h-6 w-6 text-blue-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-900 group-hover:text-blue-700">Book Appointment</span>
+            <span className="text-xs text-gray-500 mt-1">Schedule with providers</span>
           </button>
           <button 
             onClick={handleViewRecords}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex flex-col items-center p-6 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 transform hover:scale-105 group"
           >
-            <FileText className="h-6 w-6 text-indigo-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">View Records</span>
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
+              <FileText className="h-6 w-6 text-purple-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-900 group-hover:text-purple-700">View Records</span>
+            <span className="text-xs text-gray-500 mt-1">Access health history</span>
           </button>
           <button 
             onClick={handleSendMessage}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex flex-col items-center p-6 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-all duration-200 transform hover:scale-105 group"
           >
-            <MessageSquare className="h-6 w-6 text-indigo-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Message Provider</span>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
+              <MessageSquare className="h-6 w-6 text-green-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-900 group-hover:text-green-700">Message Provider</span>
+            <span className="text-xs text-gray-500 mt-1">Secure communication</span>
           </button>
           <button 
             onClick={handleViewGoals}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex flex-col items-center p-6 border border-gray-200 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 transform hover:scale-105 group"
           >
-            <Target className="h-6 w-6 text-indigo-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Health Goals</span>
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-orange-200 transition-colors">
+              <Target className="h-6 w-6 text-orange-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-900 group-hover:text-orange-700">Health Goals</span>
+            <span className="text-xs text-gray-500 mt-1">Track progress</span>
           </button>
         </div>
       </div>
 
       {/* Health Alerts */}
-      {healthMetrics.some(m => m.status === 'warning' || m.status === 'critical') && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
-            <Bell className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <CheckCircle className="h-6 w-6 text-blue-600 mt-0.5" />
             <div>
-              <h4 className="font-medium text-yellow-800">Health Reminders</h4>
-              <ul className="mt-2 text-sm text-yellow-700 space-y-1">
-                <li>• Your next health check is due in 2 weeks</li>
-                <li>• Remember to take your evening medication</li>
+              <h4 className="font-medium text-blue-900">Health Status</h4>
+              <ul className="mt-2 text-sm text-blue-700 space-y-1">
+                <li>• All vital signs within normal range</li>
+                <li>• Medication adherence: 95% this month</li>
+                <li>• Next health check due in 3 weeks</li>
               </ul>
             </div>
           </div>
+          <button
+            onClick={() => {
+              addNotification({
+                type: 'success',
+                title: 'Health Status',
+                message: 'Your health indicators are all looking good!'
+              });
+            }}
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+          >
+            View Details
+          </button>
         </div>
-      )}
+      </div>
+
+      {/* Activity Summary */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Today's Activity</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div 
+            className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white cursor-pointer hover:shadow-lg transition-all duration-200"
+            onClick={() => {
+              addNotification({
+                type: 'success',
+                title: 'Step Goal Progress',
+                message: 'You\'ve completed 82% of your daily step goal!'
+              });
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm">Steps Today</p>
+                <p className="text-2xl font-bold">8,247</p>
+                <p className="text-green-200 text-xs">Goal: 10,000</p>
+              </div>
+              <Activity className="h-8 w-8 text-green-200" />
+            </div>
+            <div className="mt-3">
+              <div className="bg-white bg-opacity-20 rounded-full h-2">
+                <div className="bg-white h-2 rounded-full" style={{ width: '82%' }}></div>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white cursor-pointer hover:shadow-lg transition-all duration-200"
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Water Intake',
+                message: 'Remember to stay hydrated! You\'ve had 6 out of 8 glasses today.'
+              });
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm">Water Intake</p>
+                <p className="text-2xl font-bold">6/8</p>
+                <p className="text-blue-200 text-xs">Glasses</p>
+              </div>
+              <div className="relative">
+                <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 text-sm font-bold">💧</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="bg-white bg-opacity-20 rounded-full h-2">
+                <div className="bg-white h-2 rounded-full" style={{ width: '75%' }}></div>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white cursor-pointer hover:shadow-lg transition-all duration-200"
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Sleep Quality',
+                message: 'Your sleep quality has been excellent this week!'
+              });
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm">Sleep Quality</p>
+                <p className="text-2xl font-bold">8.5/10</p>
+                <p className="text-purple-200 text-xs">Last night</p>
+              </div>
+              <div className="relative">
+                <div className="w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 text-sm font-bold">😴</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="bg-white bg-opacity-20 rounded-full h-2">
+                <div className="bg-white h-2 rounded-full" style={{ width: '85%' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
