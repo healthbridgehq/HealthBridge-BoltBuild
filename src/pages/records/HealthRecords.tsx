@@ -407,6 +407,7 @@ export function HealthRecords() {
       <div className="space-y-4">
         {filteredAndSortedRecords.map((record) => (
           <div key={record.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <>
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start space-x-4">
                 <input
@@ -506,6 +507,7 @@ export function HealthRecords() {
                 Record ID: {record.id}
               </div>
             </div>
+            </>
           </div>
         ))}
 
