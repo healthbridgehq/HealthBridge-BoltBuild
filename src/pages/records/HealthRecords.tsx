@@ -408,13 +408,6 @@ export function HealthRecords() {
         {filteredAndSortedRecords.map((record) => (
           <div key={record.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start space-x-2">
-                <input
-                  type="checkbox"
-                  checked={selectedItems.records.includes(record.id)}
-                  onChange={() => handleSelectRecord(record.id)}
-                  className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
                 <div className="flex items-start space-x-4">
                 <input
                   type="checkbox"
@@ -422,7 +415,6 @@ export function HealthRecords() {
                   onChange={() => handleSelectRecord(record.id)}
                   className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <div className="flex items-start space-x-4">
                 <div className="p-2 bg-indigo-100 rounded-lg">
                   <FileText className="h-5 w-5 text-indigo-600" />
                 </div>
@@ -454,7 +446,6 @@ export function HealthRecords() {
                   </div>
                   
                   <p className="text-sm text-gray-600">{record.content.substring(0, 150)}...</p>
-                </div>
                 </div>
                 </div>
               </div>
