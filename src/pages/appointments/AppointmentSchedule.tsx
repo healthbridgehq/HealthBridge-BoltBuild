@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
+import { useFormValidation } from '../../hooks/useFormValidation';
 import { Calendar, Clock, User, Video, MapPin, Plus } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 
 interface Provider {
   id: string;
@@ -23,13 +25,35 @@ interface TimeSlot {
 }
 
 export function AppointmentSchedule() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { addNotification, setLoading } = useAppStore();
+  
+  // Get pre-selected provider from navigation state
+  const preSelectedProvider = location.state?.providerId;
+  
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedProvider, setSelectedProvider] = useState<string>(preSelectedProvider || '');
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [appointmentMethod, setAppointmentMethod] = useState<'in_person' | 'telehealth'>('in_person');
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const { data: formData, updateField, validateAll, errors } = useFormValidation(
+    {
+      provider: preSelectedProvider || '',
+      appointmentType: '',
+      date: new Date().toISOString().split('T')[0],
+      time: '',
+      method: 'in_person',
+      notes: ''
+    },
+    {
+      provider: { required: true },
+      appointmentType: { required: true },
+      date: { required: true },
+      time: { required: true }
+    }
+  );
   
   const [providers, setProviders] = useState<Provider[]>([]);
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
@@ -67,36 +91,72 @@ export function AppointmentSchedule() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProvider || !selectedType || !selectedTime) {
-      alert('Please fill in all required fields');
+    
+    if (!validateAll()) {
+      addNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields correctly.'
+      });
       return;
     }
 
-    setLoading(true);
+    setLoading('appointments', true);
     try {
       // In a real app, this would create the appointment
       console.log('Creating appointment:', {
-        provider: selectedProvider,
-        type: selectedType,
-        date: selectedDate,
-        time: selectedTime,
-        method: appointmentMethod,
-        notes
+        provider: formData.provider,
+        type: formData.appointmentType,
+        date: formData.date,
+        time: formData.time,
+        method: formData.method,
+        notes: formData.notes
       });
       
-      alert('Appointment scheduled successfully!');
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Reset form
-      setSelectedProvider('');
-      setSelectedType('');
-      setSelectedTime('');
-      setNotes('');
+      addNotification({
+        type: 'success',
+        title: 'Appointment Scheduled',
+        message: 'Your appointment has been successfully scheduled.'
+      });
+      
+      navigate('/appointments');
     } catch (error) {
       console.error('Error scheduling appointment:', error);
-      alert('Failed to schedule appointment');
+      addNotification({
+        type: 'error',
+        title: 'Booking Failed',
+        message: 'Failed to schedule appointment. Please try again.'
+      });
     } finally {
-      setLoading(false);
+      setLoading('appointments', false);
     }
+  };
+
+  const handleProviderSelect = (providerId: string) => {
+    setSelectedProvider(providerId);
+    updateField('provider', providerId);
+    addNotification({
+      type: 'info',
+      title: 'Provider Selected',
+      message: 'Provider has been selected. Choose appointment type and time.'
+    });
+  };
+
+  const handleTypeSelect = (typeId: string) => {
+    setSelectedType(typeId);
+    updateField('appointmentType', typeId);
+  };
+
+  const handleTimeSelect = (time: string) => {
+    setSelectedTime(time);
+    updateField('time', time);
+  };
+
+  const handleMethodChange = (method: 'in_person' | 'telehealth') => {
+    setAppointmentMethod(method);
+    updateField('method', method);
   };
 
   return (
@@ -122,7 +182,7 @@ export function AppointmentSchedule() {
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedProvider(provider.id)}
+                  onClick={() => handleProviderSelect(provider.id)}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -152,7 +212,7 @@ export function AppointmentSchedule() {
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedType(type.id)}
+                  onClick={() => handleTypeSelect(type.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -176,12 +236,18 @@ export function AppointmentSchedule() {
             <input
               type="date"
               id="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              value={formData.date}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                updateField('date', e.target.value);
+              }}
               min={new Date().toISOString().split('T')[0]}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />
+            {errors.date && (
+              <p className="mt-1 text-sm text-red-600">{errors.date}</p>
+            )}
           </div>
 
           {/* Time Selection */}
@@ -196,7 +262,7 @@ export function AppointmentSchedule() {
                     key={slot.time}
                     type="button"
                     disabled={!slot.available}
-                    onClick={() => setSelectedTime(slot.time)}
+                    onClick={() => handleTimeSelect(slot.time)}
                     className={`p-2 text-sm rounded-md border transition-colors ${
                       selectedTime === slot.time
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -209,6 +275,9 @@ export function AppointmentSchedule() {
                   </button>
                 ))}
               </div>
+              {errors.time && (
+                <p className="mt-1 text-sm text-red-600">{errors.time}</p>
+              )}
             </div>
           )}
 
@@ -224,7 +293,7 @@ export function AppointmentSchedule() {
                     ? 'border-indigo-500 bg-indigo-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => setAppointmentMethod('in_person')}
+                onClick={() => handleMethodChange('in_person')}
               >
                 <div className="flex items-center space-x-3">
                   <MapPin className="h-5 w-5 text-gray-600" />
@@ -240,7 +309,7 @@ export function AppointmentSchedule() {
                     ? 'border-indigo-500 bg-indigo-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => setAppointmentMethod('telehealth')}
+                onClick={() => handleMethodChange('telehealth')}
               >
                 <div className="flex items-center space-x-3">
                   <Video className="h-5 w-5 text-gray-600" />
@@ -260,8 +329,8 @@ export function AppointmentSchedule() {
             </label>
             <textarea
               id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={formData.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
               rows={3}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Any specific concerns or information for your provider..."
@@ -272,26 +341,18 @@ export function AppointmentSchedule() {
           <div className="flex justify-end space-x-4">
             <button
               type="button"
+              onClick={() => navigate('/appointments')}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedProvider || !selectedType || !selectedTime}
+              disabled={!selectedProvider || !selectedType || !selectedTime}
               className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  <span>Scheduling...</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4" />
-                  <span>Schedule Appointment</span>
-                </>
-              )}
+              <Plus className="h-4 w-4" />
+              <span>Schedule Appointment</span>
             </button>
           </div>
         </form>

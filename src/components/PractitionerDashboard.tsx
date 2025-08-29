@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../stores/appStore';
 import { 
   Users, 
   Calendar, 
@@ -49,6 +50,7 @@ interface Task {
 
 export function PractitionerDashboard() {
   const navigate = useNavigate();
+  const { addNotification, setLoading } = useAppStore();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
@@ -58,7 +60,6 @@ export function PractitionerDashboard() {
     pendingTasks: 0,
     completedToday: 0
   });
-  const [loading, setLoading] = useState(false);
   const [showClinicalAlert, setShowClinicalAlert] = useState(true);
 
   useEffect(() => {
@@ -94,50 +95,78 @@ export function PractitionerDashboard() {
       pendingTasks: mockTasks.filter(t => t.priority === 'high').length,
       completedToday: 3
     });
-    setLoading(false);
   }, []);
 
   const handleViewFullSchedule = () => {
-    navigate('/appointments');
+    setLoading('appointments', true);
+    setTimeout(() => {
+      setLoading('appointments', false);
+      navigate('/appointments');
+    }, 500);
   };
 
   const handleNewConsultation = () => {
+    addNotification({
+      type: 'info',
+      title: 'New Consultation',
+      message: 'Starting a new patient consultation.'
+    });
     navigate('/clinical-records/create');
   };
 
   const handleCreateRecord = () => {
+    addNotification({
+      type: 'info',
+      title: 'Create Clinical Record',
+      message: 'Creating a new clinical record for patient documentation.'
+    });
     navigate('/clinical-records/create');
   };
 
   const handleMessagePatient = () => {
+    addNotification({
+      type: 'info',
+      title: 'Patient Messaging',
+      message: 'Access secure messaging with your patients.'
+    });
     navigate('/messages');
   };
 
   const handleViewAnalytics = () => {
-    navigate('/analytics');
+    setLoading('records', true);
+    setTimeout(() => {
+      setLoading('records', false);
+      navigate('/analytics');
+    }, 500);
   };
 
   const handleCompleteTask = (taskId: string) => {
     setPendingTasks(prev => prev.filter(task => task.id !== taskId));
+    addNotification({
+      type: 'success',
+      title: 'Task Completed',
+      message: 'Task has been marked as completed.'
+    });
   };
 
   const handleDismissTask = (taskId: string) => {
     setPendingTasks(prev => prev.filter(task => task.id !== taskId));
+    addNotification({
+      type: 'info',
+      title: 'Task Dismissed',
+      message: 'Task has been dismissed from your list.'
+    });
   };
 
   const handleDismissAlert = () => {
     setShowClinicalAlert(false);
+    addNotification({
+      type: 'success',
+      title: 'Alert Dismissed',
+      message: 'Clinical alert has been dismissed.'
+    });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin">
-          <Activity className="h-8 w-8 text-indigo-600" />
-        </div>
-      </div>
-    );
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {

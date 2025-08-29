@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
 import { 
   Calendar, 
   Clock, 
@@ -56,13 +57,12 @@ interface Provider {
 export function PatientAppointments() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { addNotification, setLoading } = useAppStore();
   const [currentView, setCurrentView] = useState<'overview' | 'book' | 'history'>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
 
   // Set view based on URL path
   useEffect(() => {
@@ -195,6 +195,64 @@ export function PatientAppointments() {
     setAppointments(mockAppointments);
     setProviders(mockProviders);
   }, []);
+
+  const handleJoinVideo = (appointmentId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Joining Video Call',
+      message: 'Connecting to your telehealth appointment...'
+    });
+    navigate('/telehealth');
+  };
+
+  const handleReschedule = (appointmentId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Reschedule Appointment',
+      message: 'Redirecting to reschedule your appointment.'
+    });
+    navigate('/appointments/book');
+  };
+
+  const handleCancel = (appointmentId: string) => {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+      setAppointments(prev => prev.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, status: 'cancelled' as const }
+          : apt
+      ));
+      addNotification({
+        type: 'success',
+        title: 'Appointment Cancelled',
+        message: 'Your appointment has been successfully cancelled.'
+      });
+    }
+  };
+
+  const handleViewDetails = (appointmentId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Appointment Details',
+      message: 'Opening detailed appointment information.'
+    });
+  };
+
+  const handleBookWithProvider = (providerId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Booking Appointment',
+      message: 'Proceeding to book appointment with selected provider.'
+    });
+    navigate('/appointments/book', { state: { providerId } });
+  };
+
+  const handleViewProviderProfile = (providerId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Provider Profile',
+      message: 'Viewing provider details and reviews.'
+    });
+  };
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -449,23 +507,35 @@ export function PatientAppointments() {
                         </button>
                       )}
                       {appointment.can_reschedule && (
-                        <button className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                        <button 
+                          onClick={() => handleReschedule(appointment.id)}
+                          className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50"
+                        >
                           Reschedule
                         </button>
                       )}
                       {appointment.can_cancel && (
-                        <button className="text-red-600 hover:text-red-700 px-3 py-1 text-sm">
+                        <button 
+                          onClick={() => handleCancel(appointment.id)}
+                          className="text-red-600 hover:text-red-700 px-3 py-1 text-sm"
+                        >
                           Cancel
                         </button>
                       )}
                     </>
                   ) : appointment.status === 'completed' ? (
                     <div className="flex space-x-2">
-                      <button className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center space-x-1">
+                      <button 
+                        onClick={() => handleViewDetails(appointment.id)}
+                        className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center space-x-1"
+                      >
                         <FileText className="h-3 w-3" />
                         <span>Summary</span>
                       </button>
-                      <button className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                      <button 
+                        onClick={() => navigate('/appointments/book')}
+                        className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50"
+                      >
                         Book Follow-up
                       </button>
                     </div>
@@ -617,7 +687,10 @@ export function PatientAppointments() {
                   <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
                     Book Appointment
                   </button>
-                  <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm">
+                  <button 
+                    onClick={() => handleViewProviderProfile(provider.id)}
+                    className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm"
+                  >
                     View Profile
                   </button>
                 </div>

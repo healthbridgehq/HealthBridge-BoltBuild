@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
 import { MessageSquare, Send, Paperclip, Search, Filter, Plus, User } from 'lucide-react';
 
 interface Conversation {
@@ -23,12 +25,18 @@ interface Message {
 }
 
 export function Messages() {
+  const location = useLocation();
+  const { addNotification } = useAppStore();
+  
+  // Get pre-selected patient from navigation state
+  const preSelectedPatient = location.state?.patientId;
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(preSelectedPatient || null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showNewConversation, setShowNewConversation] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   // Mock data for preview
   useEffect(() => {
@@ -107,6 +115,23 @@ export function Messages() {
     setSelectedConversation('1');
   }, []);
 
+  const handleSelectConversation = (conversationId: string) => {
+    setSelectedConversation(conversationId);
+    addNotification({
+      type: 'info',
+      title: 'Conversation Selected',
+      message: 'Loading conversation messages...'
+    });
+  };
+
+  const handleNewConversation = () => {
+    addNotification({
+      type: 'info',
+      title: 'New Conversation',
+      message: 'Starting a new conversation with a healthcare provider.'
+    });
+  };
+
   const filteredConversations = conversations.filter(conv =>
     conv.provider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.subject.toLowerCase().includes(searchTerm.toLowerCase())
@@ -114,8 +139,16 @@ export function Messages() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim()) {
+      addNotification({
+        type: 'warning',
+        title: 'Empty Message',
+        message: 'Please enter a message before sending.'
+      });
+      return;
+    }
 
+    setIsTyping(true);
     const message: Message = {
       id: Date.now().toString(),
       sender_name: 'Sarah Johnson',
@@ -127,8 +160,24 @@ export function Messages() {
 
     setMessages(prev => [...prev, message]);
     setNewMessage('');
+    
+    setTimeout(() => {
+      setIsTyping(false);
+      addNotification({
+        type: 'success',
+        title: 'Message Sent',
+        message: 'Your message has been delivered securely.'
+      });
+    }, 500);
   };
 
+  const handleAttachFile = () => {
+    addNotification({
+      type: 'info',
+      title: 'File Attachment',
+      message: 'File attachment feature will be available soon.'
+    });
+  };
   const getPriorityColor = (priority: string) => {
     const colors = {
       low: 'bg-gray-100 text-gray-800',
@@ -147,7 +196,7 @@ export function Messages() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
             <button
-              onClick={() => setShowNewConversation(true)}
+              onClick={handleNewConversation}
               className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700"
             >
               <Plus className="h-4 w-4" />
@@ -169,7 +218,7 @@ export function Messages() {
           {filteredConversations.map((conversation) => (
             <div
               key={conversation.id}
-              onClick={() => setSelectedConversation(conversation.id)}
+              onClick={() => handleSelectConversation(conversation.id)}
               className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
                 selectedConversation === conversation.id ? 'bg-indigo-50 border-indigo-200' : ''
               }`}
@@ -264,6 +313,7 @@ export function Messages() {
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
                 <button
                   type="button"
+                  onClick={handleAttachFile}
                   className="p-2 text-gray-400 hover:text-gray-600"
                 >
                   <Paperclip className="h-5 w-5" />
@@ -274,15 +324,26 @@ export function Messages() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
                   className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={isTyping}
                 />
                 <button
                   type="submit"
-                  disabled={!newMessage.trim()}
+                  disabled={!newMessage.trim() || isTyping}
                   className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send className="h-5 w-5" />
+                  {isTyping ? (
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
                 </button>
               </form>
+              {isTyping && (
+                <div className="mt-2 text-xs text-gray-500 flex items-center space-x-1">
+                  <div className="animate-pulse w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <span>Sending message...</span>
+                </div>
+              )}
             </div>
           </>
         ) : (

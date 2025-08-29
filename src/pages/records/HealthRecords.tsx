@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
 import { FileText, Plus, Share2, Download, Filter, Search, Eye, Lock } from 'lucide-react';
 
 interface HealthRecord {
@@ -13,13 +14,10 @@ interface HealthRecord {
 
 export function HealthRecords() {
   const navigate = useNavigate();
+  const { addNotification, setLoading, toggleItemSelection, selectedItems } = useAppStore();
   const [records, setRecords] = useState<HealthRecord[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
-  const [showShareModal, setShowShareModal] = useState(false);
 
   // Mock data for preview
   useEffect(() => {
@@ -60,30 +58,68 @@ export function HealthRecords() {
   }, []);
 
   const handleAddRecord = () => {
+    addNotification({
+      type: 'info',
+      title: 'Add Health Record',
+      message: 'Create a new health record entry.'
+    });
     navigate('/records/add');
   };
 
   const handleViewRecord = (recordId: string) => {
-    setSelectedRecord(recordId);
     // In production, this would open a detailed view modal
     console.log('Viewing record:', recordId);
+    addNotification({
+      type: 'info',
+      title: 'Record Viewed',
+      message: 'Opening detailed record view.'
+    });
   };
 
   const handleDownloadRecord = (recordId: string) => {
     // In production, this would generate and download a PDF
     console.log('Downloading record:', recordId);
-    alert('Record download started');
+    addNotification({
+      type: 'success',
+      title: 'Download Started',
+      message: 'Your health record is being prepared for download.'
+    });
   };
 
   const handleShareRecord = (recordId: string) => {
-    setSelectedRecord(recordId);
+    toggleItemSelection('records', recordId);
+    addNotification({
+      type: 'info',
+      title: 'Share Record',
+      message: 'Redirecting to secure record sharing.'
+    });
     navigate('/records/share');
   };
 
   const handleShareWithProvider = () => {
+    addNotification({
+      type: 'info',
+      title: 'Share with Provider',
+      message: 'Select records to share with your healthcare providers.'
+    });
     navigate('/records/share');
   };
 
+  const handleSelectRecord = (recordId: string) => {
+    toggleItemSelection('records', recordId);
+  };
+
+  const handleBulkShare = () => {
+    if (selectedItems.records.length === 0) {
+      addNotification({
+        type: 'warning',
+        title: 'No Records Selected',
+        message: 'Please select at least one record to share.'
+      });
+      return;
+    }
+    navigate('/records/share');
+  };
   const filteredRecords = records.filter(record => {
     const matchesSearch = record.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.record_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,6 +167,15 @@ export function HealthRecords() {
           >
             <Plus className="h-4 w-4" />
             <span>Add Record</span>
+            {selectedItems.records.length > 0 && (
+              <button
+                onClick={handleBulkShare}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>Share Selected ({selectedItems.records.length})</span>
+              </button>
+            )}
           </button>
         </div>
 
@@ -169,7 +214,14 @@ export function HealthRecords() {
         {filteredRecords.map((record) => (
           <div key={record.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start space-x-4">
+              <div className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.records.includes(record.id)}
+                  onChange={() => handleSelectRecord(record.id)}
+                  className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <div className="flex items-start space-x-4">
                 <div className="p-2 bg-indigo-100 rounded-lg">
                   <FileText className="h-5 w-5 text-indigo-600" />
                 </div>
@@ -194,6 +246,7 @@ export function HealthRecords() {
                   {record.provider_name && (
                     <p className="text-sm text-gray-600">Provider: {record.provider_name}</p>
                   )}
+                </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2">

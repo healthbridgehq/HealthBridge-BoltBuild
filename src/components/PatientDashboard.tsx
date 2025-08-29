@@ -1,375 +1,300 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Heart, 
-  Calendar, 
-  Pill, 
-  Activity, 
-  FileText, 
-  MessageSquare, 
-  AlertTriangle,
-  TrendingUp,
-  Clock,
-  Shield,
-  Plus,
-  Bell
-} from 'lucide-react';
+import { Calendar, Clock, User, Video, MapPin, Plus } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
-interface HealthMetric {
+interface Provider {
   id: string;
-  type: string;
-  value: string;
-  unit: string;
-  date: string;
-  status: 'normal' | 'warning' | 'critical';
+  name: string;
+  specialty: string;
+  avatar?: string;
 }
 
-interface Appointment {
+interface AppointmentType {
   id: string;
-  provider: string;
-  date: string;
+  name: string;
+  duration_minutes: number;
+  description: string;
+  color: string;
+}
+
+interface TimeSlot {
   time: string;
-  type: string;
-  status: 'upcoming' | 'completed' | 'cancelled';
+  available: boolean;
 }
 
-export function PatientDashboard() {
-  const navigate = useNavigate();
-  const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>([]);
-  const [recentRecords, setRecentRecords] = useState<any[]>([]);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+export function AppointmentSchedule() {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [appointmentMethod, setAppointmentMethod] = useState<'in_person' | 'telehealth'>('in_person');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showHealthAlert, setShowHealthAlert] = useState(true);
+  
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
 
+  // Mock data for preview
   useEffect(() => {
-    // Mock data for demonstration - no async operations that could fail
-    setHealthMetrics([
-      { id: '1', type: 'Blood Pressure', value: '120/80', unit: 'mmHg', date: '2025-01-15', status: 'normal' },
-      { id: '2', type: 'Heart Rate', value: '72', unit: 'bpm', date: '2025-01-15', status: 'normal' },
-      { id: '3', type: 'Weight', value: '70', unit: 'kg', date: '2025-01-14', status: 'normal' },
-      { id: '4', type: 'Blood Sugar', value: '95', unit: 'mg/dL', date: '2025-01-13', status: 'normal' }
+    setProviders([
+      { id: '1', name: 'Dr. Sarah Johnson', specialty: 'General Practice' },
+      { id: '2', name: 'Dr. Michael Chen', specialty: 'Cardiology' },
+      { id: '3', name: 'Dr. Emily Davis', specialty: 'Dermatology' },
+      { id: '4', name: 'Dr. James Wilson', specialty: 'Orthopedics' }
     ]);
 
-    setUpcomingAppointments([
-      { id: '1', provider: 'Dr. Sarah Johnson', date: '2025-01-20', time: '10:00 AM', type: 'General Checkup', status: 'upcoming' },
-      { id: '2', provider: 'Dr. Michael Chen', date: '2025-01-25', time: '2:30 PM', type: 'Cardiology', status: 'upcoming' }
+    setAppointmentTypes([
+      { id: '1', name: 'General Consultation', duration_minutes: 30, description: 'Standard consultation', color: '#3B82F6' },
+      { id: '2', name: 'Follow-up', duration_minutes: 15, description: 'Follow-up appointment', color: '#10B981' },
+      { id: '3', name: 'Health Check', duration_minutes: 45, description: 'Comprehensive health screening', color: '#F59E0B' },
+      { id: '4', name: 'Telehealth Consultation', duration_minutes: 30, description: 'Video consultation', color: '#8B5CF6' }
     ]);
 
-    setRecentRecords([
-      { id: '1', record_type: 'consultation', created_at: '2025-01-10' },
-      { id: '2', record_type: 'prescription', created_at: '2025-01-08' },
-      { id: '3', record_type: 'test_result', created_at: '2025-01-05' }
-    ]);
+    // Generate available time slots
+    const slots: TimeSlot[] = [];
+    for (let hour = 9; hour < 17; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push({
+          time,
+          available: Math.random() > 0.3 // 70% chance of being available
+        });
+      }
+    }
+    setAvailableSlots(slots);
+  }, [selectedDate, selectedProvider]);
 
-    setLoading(false);
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProvider || !selectedType || !selectedTime) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
-  const handleViewAllMetrics = () => {
-    navigate('/health-goals');
-  };
-
-  const handleViewAllRecords = () => {
-    navigate('/records');
-  };
-
-  const handleScheduleAppointment = () => {
-    navigate('/appointments/book');
-  };
-
-  const handleAddRecord = () => {
-    navigate('/records/add');
-  };
-
-  const handleMessageProvider = () => {
-    navigate('/messages');
-  };
-
-  const handleBookAppointment = () => {
-    navigate('/appointments/book');
-  };
-
-  const handleHealthGoals = () => {
-    navigate('/health-goals');
-  };
-
-  const handleDismissAlert = () => {
-    setShowHealthAlert(false);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'normal': return 'text-green-600 bg-green-50';
-      case 'warning': return 'text-yellow-600 bg-yellow-50';
-      case 'critical': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
+    setLoading(true);
+    try {
+      // In a real app, this would create the appointment
+      console.log('Creating appointment:', {
+        provider: selectedProvider,
+        type: selectedType,
+        date: selectedDate,
+        time: selectedTime,
+        method: appointmentMethod,
+        notes
+      });
+      
+      alert('Appointment scheduled successfully!');
+      
+      // Reset form
+      setSelectedProvider('');
+      setSelectedType('');
+      setSelectedTime('');
+      setNotes('');
+    } catch (error) {
+      console.error('Error scheduling appointment:', error);
+      alert('Failed to schedule appointment');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin">
-          <Activity className="h-8 w-8 text-indigo-600" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 text-white">
-        <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center space-x-2 mb-6">
+          <Calendar className="h-6 w-6 text-indigo-600" />
+          <h1 className="text-2xl font-bold text-gray-900">Schedule Appointment</h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Provider Selection */}
           <div>
-            <h1 className="text-2xl font-bold">Welcome back, Sarah Johnson</h1>
-            <p className="text-indigo-100 mt-1">Here's your health overview for today</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Bell className="h-6 w-6" />
-            <span className="bg-red-500 text-xs rounded-full px-2 py-1">2</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Heart className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Health Score</p>
-              <p className="text-2xl font-bold text-gray-900">85/100</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Next Appointment</p>
-              <p className="text-lg font-bold text-gray-900">Jan 20</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Pill className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Medications</p>
-              <p className="text-2xl font-bold text-gray-900">3</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <FileText className="h-6 w-6 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Records</p>
-              <p className="text-2xl font-bold text-gray-900">{recentRecords.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Health Metrics */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Latest Health Metrics</h2>
-              <button 
-                onClick={handleViewAllMetrics}
-                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-              >
-                View All
-              </button>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {healthMetrics.map((metric) => (
-                <div key={metric.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Healthcare Provider
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {providers.map((provider) => (
+                <div
+                  key={provider.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedProvider === provider.id
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedProvider(provider.id)}
+                >
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${getStatusColor(metric.status)}`}>
-                      <TrendingUp className="h-4 w-4" />
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <User className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{metric.type}</p>
-                      <p className="text-sm text-gray-500">{metric.date}</p>
+                      <p className="font-medium text-gray-900">{provider.name}</p>
+                      <p className="text-sm text-gray-500">{provider.specialty}</p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900">{metric.value} {metric.unit}</p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(metric.status)}`}>
-                      {metric.status}
-                    </span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Upcoming Appointments */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Appointments</h2>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {upcomingAppointments.map((appointment) => (
-                <div key={appointment.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-start justify-between">
+          {/* Appointment Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Appointment Type
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {appointmentTypes.map((type) => (
+                <div
+                  key={type.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedType === type.id
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedType(type.id)}
+                >
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">{appointment.provider}</p>
-                      <p className="text-sm text-gray-600">{appointment.type}</p>
-                      <div className="flex items-center mt-2 text-sm text-gray-500">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {appointment.date}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {appointment.time}
-                      </div>
+                      <p className="font-medium text-gray-900">{type.name}</p>
+                      <p className="text-sm text-gray-500">{type.description}</p>
                     </div>
-                    <span className="inline-flex px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full">
-                      {appointment.status}
-                    </span>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">{type.duration_minutes} min</p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-            <button className="w-full mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-              Schedule New Appointment
-            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Recent Activity & Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Health Records */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Health Records</h2>
-              <button 
-                onClick={handleViewAllRecords}
-                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-              >
-                View All
-              </button>
-            </div>
+          {/* Date Selection */}
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+              Preferred Date
+            </label>
+            <input
+              type="date"
+              id="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
           </div>
-          <div className="p-6">
-            {recentRecords.length > 0 ? (
-              <div className="space-y-3">
-                {recentRecords.slice(0, 3).map((record) => (
-                  <div key={record.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <FileText className="h-5 w-5 text-indigo-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">
-                        {record.record_type.replace('_', ' ').charAt(0).toUpperCase() + record.record_type.slice(1)}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(record.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Shield className="h-4 w-4 text-green-600" />
-                  </div>
+
+          {/* Time Selection */}
+          {selectedProvider && selectedType && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Available Times
+              </label>
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    disabled={!slot.available}
+                    onClick={() => setSelectedTime(slot.time)}
+                    className={`p-2 text-sm rounded-md border transition-colors ${
+                      selectedTime === slot.time
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : slot.available
+                        ? 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {slot.time}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">No health records yet</p>
-            )}
-          </div>
-          <button 
-            onClick={handleScheduleAppointment}
-            className="w-full mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-          >
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={handleAddRecord}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Plus className="h-6 w-6 text-indigo-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Add Record</span>
-              </button>
-              <button 
-                onClick={handleMessageProvider}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <MessageSquare className="h-6 w-6 text-indigo-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Message Provider</span>
-              </button>
-              <button 
-                onClick={handleBookAppointment}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Calendar className="h-6 w-6 text-indigo-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Book Appointment</span>
-              </button>
-              <button 
-                onClick={handleHealthGoals}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Activity className="h-6 w-6 text-indigo-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Health Goals</span>
-              </button>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Health Alerts */}
-      {showHealthAlert && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start">
-              <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-yellow-800">Health Reminders</h3>
-                <div className="mt-2 text-sm text-yellow-700">
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Annual physical exam due in 2 weeks</li>
-                    <li>Flu vaccination recommended for this season</li>
-                  </ul>
+          {/* Appointment Method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Appointment Method
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <div
+                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                  appointmentMethod === 'in_person'
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setAppointmentMethod('in_person')}
+              >
+                <div className="flex items-center space-x-3">
+                  <MapPin className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="font-medium text-gray-900">In-Person</p>
+                    <p className="text-sm text-gray-500">Visit the clinic</p>
+                  </div>
+                </div>
+              </div>
+              <div
+                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                  appointmentMethod === 'telehealth'
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setAppointmentMethod('telehealth')}
+              >
+                <div className="flex items-center space-x-3">
+                  <Video className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="font-medium text-gray-900">Telehealth</p>
+                    <p className="text-sm text-gray-500">Video consultation</p>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+              Additional Notes (Optional)
+            </label>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Any specific concerns or information for your provider..."
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4">
             <button
-              onClick={handleDismissAlert}
-              className="text-yellow-600 hover:text-yellow-700"
+              type="button"
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              <X className="h-4 w-4" />
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !selectedProvider || !selectedType || !selectedTime}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  <span>Scheduling...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  <span>Schedule Appointment</span>
+                </>
+              )}
             </button>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-            </div>
-          </div>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
 import { 
   Users, 
   Plus, 
@@ -44,12 +46,12 @@ interface Patient {
 }
 
 export function PatientManagement() {
+  const navigate = useNavigate();
+  const { addNotification, setLoading, toggleItemSelection, selectedItems } = useAppStore();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRisk, setFilterRisk] = useState('all');
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Mock data
@@ -148,6 +150,73 @@ export function PatientManagement() {
     setPatients(mockPatients);
   }, []);
 
+  const handleAddPatient = () => {
+    addNotification({
+      type: 'info',
+      title: 'Add New Patient',
+      message: 'Redirecting to patient registration form.'
+    });
+    navigate('/patients/add');
+  };
+
+  const handleViewPatient = (patientId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Patient Profile',
+      message: 'Opening detailed patient profile.'
+    });
+    // In production, this would navigate to patient detail page
+    console.log('Viewing patient:', patientId);
+  };
+
+  const handleEditPatient = (patientId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Edit Patient',
+      message: 'Opening patient information for editing.'
+    });
+    // In production, this would navigate to edit form
+    console.log('Editing patient:', patientId);
+  };
+
+  const handleMessagePatient = (patientId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Message Patient',
+      message: 'Opening secure messaging with patient.'
+    });
+    navigate('/messages', { state: { patientId } });
+  };
+
+  const handleScheduleAppointment = (patientId: string) => {
+    addNotification({
+      type: 'info',
+      title: 'Schedule Appointment',
+      message: 'Booking new appointment for patient.'
+    });
+    navigate('/appointments/schedule', { state: { patientId } });
+  };
+
+  const handleSelectPatient = (patientId: string) => {
+    toggleItemSelection('patients', patientId);
+  };
+
+  const handleBulkAction = (action: string) => {
+    if (selectedItems.patients.length === 0) {
+      addNotification({
+        type: 'warning',
+        title: 'No Patients Selected',
+        message: 'Please select at least one patient for bulk actions.'
+      });
+      return;
+    }
+
+    addNotification({
+      type: 'info',
+      title: 'Bulk Action',
+      message: `Performing ${action} on ${selectedItems.patients.length} patients.`
+    });
+  };
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -188,6 +257,12 @@ export function PatientManagement() {
   const renderPatientCard = (patient: Patient) => (
     <div key={patient.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">
+        <input
+          type="checkbox"
+          checked={selectedItems.patients.includes(patient.id)}
+          onChange={() => handleSelectPatient(patient.id)}
+          className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+        />
         <div className="flex items-start space-x-3">
           <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
             <User className="h-6 w-6 text-indigo-600" />
@@ -208,6 +283,7 @@ export function PatientManagement() {
             <span className="text-xs font-medium capitalize">{patient.risk_level} risk</span>
           </div>
         </div>
+      </div>
       </div>
 
       <div className="space-y-3 mb-4">
@@ -268,10 +344,16 @@ export function PatientManagement() {
           <button className="p-2 text-gray-400 hover:text-gray-600">
             <Eye className="h-4 w-4" />
           </button>
-          <button className="p-2 text-gray-400 hover:text-gray-600">
+          <button 
+            onClick={() => handleEditPatient(patient.id)}
+            className="p-2 text-gray-400 hover:text-gray-600"
+          >
             <Edit className="h-4 w-4" />
           </button>
-          <button className="p-2 text-gray-400 hover:text-gray-600">
+          <button 
+            onClick={() => handleMessagePatient(patient.id)}
+            className="p-2 text-gray-400 hover:text-gray-600"
+          >
             <MessageSquare className="h-4 w-4" />
           </button>
           <button className="p-2 text-gray-400 hover:text-gray-600">
@@ -318,13 +400,22 @@ export function PatientManagement() {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex items-center space-x-2">
-          <button className="text-indigo-600 hover:text-indigo-900">
+          <button 
+            onClick={() => handleViewPatient(patient.id)}
+            className="text-indigo-600 hover:text-indigo-900"
+          >
             <Eye className="h-4 w-4" />
           </button>
-          <button className="text-indigo-600 hover:text-indigo-900">
+          <button 
+            onClick={() => handleEditPatient(patient.id)}
+            className="text-indigo-600 hover:text-indigo-900"
+          >
             <Edit className="h-4 w-4" />
           </button>
-          <button className="text-indigo-600 hover:text-indigo-900">
+          <button 
+            onClick={() => handleMessagePatient(patient.id)}
+            className="text-indigo-600 hover:text-indigo-900"
+          >
             <MessageSquare className="h-4 w-4" />
           </button>
         </div>
@@ -342,7 +433,7 @@ export function PatientManagement() {
             <h1 className="text-2xl font-bold text-gray-900">Patient Management</h1>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={handleAddPatient}
             className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
@@ -440,6 +531,25 @@ export function PatientManagement() {
               <option value="medium">Medium Risk</option>
               <option value="high">High Risk</option>
             </select>
+            {selectedItems.patients.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">
+                  {selectedItems.patients.length} selected
+                </span>
+                <button
+                  onClick={() => handleBulkAction('message')}
+                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                >
+                  Message All
+                </button>
+                <button
+                  onClick={() => handleBulkAction('export')}
+                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                >
+                  Export
+                </button>
+              </div>
+            )}
             <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
@@ -520,7 +630,7 @@ export function PatientManagement() {
                 : 'Add your first patient to get started.'}
             </p>
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={handleAddPatient}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
             >
               Add Patient

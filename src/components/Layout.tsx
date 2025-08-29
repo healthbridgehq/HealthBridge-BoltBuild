@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useAppStore } from '../stores/appStore';
 import { Activity, Menu, X, Bell, Search } from 'lucide-react';
 import { Navigation } from './Navigation';
 import { useAuthStore } from '../stores/authStore';
 
 export function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { signOut } = useAuthStore();
+  const { 
+    sidebarCollapsed, 
+    toggleSidebar, 
+    notifications, 
+    markNotificationRead, 
+    clearNotifications 
+  } = useAppStore();
+  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // For preview mode
   const previewMode = true;
@@ -27,6 +38,20 @@ export function Layout() {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    // In production, this would perform global search
+    console.log('Searching for:', searchQuery);
+    // Navigate to search results page or show search modal
+  };
+
+  const handleNotificationClick = (notificationId: string) => {
+    markNotificationRead(notificationId);
+  };
+
+  const unreadNotifications = notifications.filter(n => !n.read);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
@@ -93,19 +118,83 @@ export function Layout() {
             </button>
             
             <div className="flex items-center space-x-4">
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                 />
-              </div>
+              </form>
               
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2 text-gray-400 hover:text-gray-600"
+                >
                 <Bell className="h-6 w-6" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
-              </button>
+                  {unreadNotifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                      {unreadNotifications.length}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-4 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-gray-900">Notifications</h3>
+                        {notifications.length > 0 && (
+                          <button
+                            onClick={clearNotifications}
+                            className="text-sm text-gray-500 hover:text-gray-700"
+                          >
+                            Clear All
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.slice(0, 10).map((notification) => (
+                          <div
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification.id)}
+                            className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                              !notification.read ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className={`w-2 h-2 rounded-full mt-2 ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'error' ? 'bg-red-500' :
+                                notification.type === 'warning' ? 'bg-yellow-500' :
+                                'bg-blue-500'
+                              }`} />
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">{notification.title}</p>
+                                <p className="text-sm text-gray-600">{notification.message}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(notification.timestamp).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p>No notifications</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               
               <button 
                 onClick={() => navigate('/profile')}
@@ -132,6 +221,14 @@ export function Layout() {
           </div>
         </main>
       </div>
+      
+      {/* Click outside to close notifications */}
+      {showNotifications && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowNotifications(false)}
+        />
+      )}
     </div>
   );
 }
