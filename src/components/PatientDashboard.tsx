@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Heart, 
   Calendar, 
@@ -33,10 +34,12 @@ interface Appointment {
 }
 
 export function PatientDashboard() {
+  const navigate = useNavigate();
   const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>([]);
   const [recentRecords, setRecentRecords] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showHealthAlert, setShowHealthAlert] = useState(true);
 
   useEffect(() => {
     // Mock data for demonstration - no async operations that could fail
@@ -60,6 +63,38 @@ export function PatientDashboard() {
 
     setLoading(false);
   }, []);
+
+  const handleViewAllMetrics = () => {
+    navigate('/health-goals');
+  };
+
+  const handleViewAllRecords = () => {
+    navigate('/records');
+  };
+
+  const handleScheduleAppointment = () => {
+    navigate('/appointments/book');
+  };
+
+  const handleAddRecord = () => {
+    navigate('/records/add');
+  };
+
+  const handleMessageProvider = () => {
+    navigate('/messages');
+  };
+
+  const handleBookAppointment = () => {
+    navigate('/appointments/book');
+  };
+
+  const handleHealthGoals = () => {
+    navigate('/health-goals');
+  };
+
+  const handleDismissAlert = () => {
+    setShowHealthAlert(false);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -153,7 +188,10 @@ export function PatientDashboard() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Latest Health Metrics</h2>
-              <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+              <button 
+                onClick={handleViewAllMetrics}
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
                 View All
               </button>
             </div>
@@ -226,7 +264,10 @@ export function PatientDashboard() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Recent Health Records</h2>
-              <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+              <button 
+                onClick={handleViewAllRecords}
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
                 View All
               </button>
             </div>
@@ -253,7 +294,10 @@ export function PatientDashboard() {
               <p className="text-gray-500 text-center py-4">No health records yet</p>
             )}
           </div>
-        </div>
+          <button 
+            onClick={handleScheduleAppointment}
+            className="w-full mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+          >
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -262,19 +306,31 @@ export function PatientDashboard() {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-2 gap-4">
-              <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button 
+                onClick={handleAddRecord}
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Plus className="h-6 w-6 text-indigo-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900">Add Record</span>
               </button>
-              <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button 
+                onClick={handleMessageProvider}
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <MessageSquare className="h-6 w-6 text-indigo-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900">Message Provider</span>
               </button>
-              <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button 
+                onClick={handleBookAppointment}
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Calendar className="h-6 w-6 text-indigo-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900">Book Appointment</span>
               </button>
-              <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button 
+                onClick={handleHealthGoals}
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Activity className="h-6 w-6 text-indigo-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900">Health Goals</span>
               </button>
@@ -284,16 +340,33 @@ export function PatientDashboard() {
       </div>
 
       {/* Health Alerts */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <div className="flex items-start">
-          <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5" />
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">Health Reminders</h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              <ul className="list-disc list-inside space-y-1">
-                <li>Annual physical exam due in 2 weeks</li>
-                <li>Flu vaccination recommended for this season</li>
-              </ul>
+      {showHealthAlert && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start">
+              <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5" />
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Health Reminders</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Annual physical exam due in 2 weeks</li>
+                    <li>Flu vaccination recommended for this season</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleDismissAlert}
+              className="text-yellow-600 hover:text-yellow-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
             </div>
           </div>
         </div>
