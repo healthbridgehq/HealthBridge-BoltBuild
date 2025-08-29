@@ -114,15 +114,15 @@ export function AddRecord() {
             <h1 className="text-2xl font-bold text-gray-900">Add Health Record</h1>
           </div>
           <button
-            } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => !isSubmitting && handleRecordTypeSelect(type.value)}
+            className={`flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isSubmitting && navigate('/records')}
           >
             <X className="h-4 w-4" />
             <span>Cancel</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={onSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Record Type *
@@ -135,8 +135,8 @@ export function AddRecord() {
                     formData.recordType === type.value
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, recordType: type.value }))}
+                  } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => !isSubmitting && handleRecordTypeSelect(type.value)}
                 >
                   <div className="flex items-center space-x-2">
                     {type.icon}
@@ -146,7 +146,7 @@ export function AddRecord() {
               ))}
             </div>
           </div>
-        <form onSubmit={onSubmit} className="space-y-6">
+
           <FormField
             label="Title"
             name="title"
