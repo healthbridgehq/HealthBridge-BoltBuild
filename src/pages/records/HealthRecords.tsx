@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
+import { useModalStore } from '../../stores/modalStore';
 import { FileText, Plus, Share2, Download, Filter, Search, Eye, Lock } from 'lucide-react';
+import { AddRecordModal } from '../../components/modals/AddRecordModal';
+import { RecordDetailsModal } from '../../components/modals/RecordDetailsModal';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 interface HealthRecord {
   id: string;
@@ -15,6 +19,7 @@ interface HealthRecord {
 export function HealthRecords() {
   const navigate = useNavigate();
   const { addNotification, setLoading, toggleItemSelection, selectedItems } = useAppStore();
+  const { openModal, closeModal, modals, setModalData, modalData, showConfirmDialog } = useModalStore();
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -58,22 +63,12 @@ export function HealthRecords() {
   }, []);
 
   const handleAddRecord = () => {
-    addNotification({
-      type: 'info',
-      title: 'Add Health Record',
-      message: 'Create a new health record entry.'
-    });
-    navigate('/records/add');
+    openModal('addRecord');
   };
 
   const handleViewRecord = (recordId: string) => {
-    // In production, this would open a detailed view modal
-    console.log('Viewing record:', recordId);
-    addNotification({
-      type: 'info',
-      title: 'Record Viewed',
-      message: 'Opening detailed record view.'
-    });
+    setModalData('selectedRecord', recordId);
+    openModal('recordDetails');
   };
 
   const handleDownloadRecord = (recordId: string) => {
@@ -88,12 +83,25 @@ export function HealthRecords() {
 
   const handleShareRecord = (recordId: string) => {
     toggleItemSelection('records', recordId);
-    addNotification({
-      type: 'info',
-      title: 'Share Record',
-      message: 'Redirecting to secure record sharing.'
-    });
     navigate('/records/share');
+  };
+
+  const handleDeleteRecord = (recordId: string) => {
+    showConfirmDialog({
+      title: 'Delete Health Record',
+      message: 'Are you sure you want to delete this health record? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Record',
+      cancelText: 'Keep Record',
+      onConfirm: () => {
+        setRecords(prev => prev.filter(r => r.id !== recordId));
+        addNotification({
+          type: 'success',
+          title: 'Record Deleted',
+          message: 'Health record has been deleted successfully.'
+        });
+      }
+    });
   };
 
   const handleShareWithProvider = () => {
@@ -273,6 +281,12 @@ export function HealthRecords() {
                 >
                   <Share2 className="h-4 w-4" />
                 </button>
+                <button 
+                  onClick={() => handleDeleteRecord(record.id)}
+                  className="p-2 text-red-400 hover:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
             
@@ -320,6 +334,20 @@ export function HealthRecords() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <AddRecordModal />
+      <RecordDetailsModal />
+      <ConfirmDialog
+        isOpen={modals.confirmDialog}
+        onClose={() => closeModal('confirmDialog')}
+        onConfirm={modalData.confirmDialog?.onConfirm || (() => {})}
+        title={modalData.confirmDialog?.title || ''}
+        message={modalData.confirmDialog?.message || ''}
+        type={modalData.confirmDialog?.type || 'warning'}
+        confirmText={modalData.confirmDialog?.confirmText}
+        cancelText={modalData.confirmDialog?.cancelText}
+      />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
