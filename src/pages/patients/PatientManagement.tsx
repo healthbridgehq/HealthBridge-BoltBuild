@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
+import { useModalStore } from '../../stores/modalStore';
 import { 
   Users, 
   Plus, 
@@ -22,8 +23,12 @@ import {
   Star,
   Edit,
   Eye,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from 'lucide-react';
+import { AddPatientModal } from '../../components/modals/AddPatientModal';
+import { SendMessageModal } from '../../components/modals/SendMessageModal';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 interface Patient {
   id: string;
@@ -48,6 +53,7 @@ interface Patient {
 export function PatientManagement() {
   const navigate = useNavigate();
   const { addNotification, setLoading, toggleItemSelection, selectedItems } = useAppStore();
+  const { openModal, closeModal, modals, setModalData, modalData, showConfirmDialog } = useModalStore();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -151,12 +157,7 @@ export function PatientManagement() {
   }, []);
 
   const handleAddPatient = () => {
-    addNotification({
-      type: 'info',
-      title: 'Add New Patient',
-      message: 'Redirecting to patient registration form.'
-    });
-    navigate('/patients/add');
+    openModal('addPatient');
   };
 
   const handleViewPatient = (patientId: string) => {
@@ -180,21 +181,32 @@ export function PatientManagement() {
   };
 
   const handleMessagePatient = (patientId: string) => {
-    addNotification({
-      type: 'info',
-      title: 'Message Patient',
-      message: 'Opening secure messaging with patient.'
-    });
-    navigate('/messages', { state: { patientId } });
+    setModalData('selectedPatient', patientId);
+    openModal('sendMessage');
   };
 
   const handleScheduleAppointment = (patientId: string) => {
-    addNotification({
-      type: 'info',
-      title: 'Schedule Appointment',
-      message: 'Booking new appointment for patient.'
+    setModalData('selectedPatient', patientId);
+    openModal('createAppointment');
+  };
+
+  const handleDeletePatient = (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    showConfirmDialog({
+      title: 'Delete Patient',
+      message: `Are you sure you want to delete ${patient?.name}? This action cannot be undone and will remove all associated records.`,
+      type: 'danger',
+      confirmText: 'Delete Patient',
+      cancelText: 'Keep Patient',
+      onConfirm: () => {
+        setPatients(prev => prev.filter(p => p.id !== patientId));
+        addNotification({
+          type: 'success',
+          title: 'Patient Deleted',
+          message: 'Patient has been removed from the system.'
+        });
+      }
     });
-    navigate('/appointments/schedule', { state: { patientId } });
   };
 
   const handleSelectPatient = (patientId: string) => {
@@ -355,6 +367,18 @@ export function PatientManagement() {
           >
             <MessageSquare className="h-4 w-4" />
           </button>
+          <button 
+            onClick={() => handleScheduleAppointment(patient.id)}
+            className="p-2 text-gray-400 hover:text-gray-600"
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={() => handleDeletePatient(patient.id)}
+            className="p-2 text-red-400 hover:text-red-600"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
           <button className="p-2 text-gray-400 hover:text-gray-600">
             <MoreVertical className="h-4 w-4" />
           </button>
@@ -416,6 +440,18 @@ export function PatientManagement() {
             className="text-indigo-600 hover:text-indigo-900"
           >
             <MessageSquare className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={() => handleScheduleAppointment(patient.id)}
+            className="text-indigo-600 hover:text-indigo-900"
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={() => handleDeletePatient(patient.id)}
+            className="text-red-600 hover:text-red-900"
+          >
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </td>
@@ -637,6 +673,20 @@ export function PatientManagement() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <AddPatientModal />
+      <SendMessageModal />
+      <ConfirmDialog
+        isOpen={modals.confirmDialog}
+        onClose={() => closeModal('confirmDialog')}
+        onConfirm={modalData.confirmDialog?.onConfirm || (() => {})}
+        title={modalData.confirmDialog?.title || ''}
+        message={modalData.confirmDialog?.message || ''}
+        type={modalData.confirmDialog?.type || 'warning'}
+        confirmText={modalData.confirmDialog?.confirmText}
+        cancelText={modalData.confirmDialog?.cancelText}
+      />
     </div>
   );
 }
