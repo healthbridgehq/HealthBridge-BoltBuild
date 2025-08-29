@@ -111,18 +111,35 @@ export function IntegrationHub() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLocalLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [syncingIntegrations, setSyncingIntegrations] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadIntegrations();
-    loadSyncLogs();
-    loadTemplates();
+    loadAllData();
   }, []);
+
+  const loadAllData = async () => {
+    try {
+      setLocalLoading(true);
+      setError(null);
+      
+      await Promise.all([
+        loadIntegrations(),
+        loadSyncLogs(),
+        loadTemplates()
+      ]);
+    } catch (err) {
+      setError('Failed to load integration data');
+    } finally {
+      setLocalLoading(false);
+    }
+  };
 
   const loadIntegrations = async () => {
     try {
-      // In production, this would load from Supabase
-      // For now, using enhanced mock data
+      // Mock data - in production this would load from Supabase
       setIntegrations([
         {
           id: '1',
@@ -325,10 +342,14 @@ export function IntegrationHub() {
       ]);
     } catch (error) {
       console.error('Failed to load integrations:', error);
+      throw error;
     }
   };
 
-  const loadSyncLogs = () => {
+  const loadSyncLogs = async () => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     setSyncLogs([
       {
         id: '1',
@@ -398,7 +419,10 @@ export function IntegrationHub() {
     ]);
   };
 
-  const loadTemplates = () => {
+  const loadTemplates = async () => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
     setTemplates([
       {
         id: 'mhr-template',
@@ -487,6 +511,50 @@ export function IntegrationHub() {
     ]);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadAllData();
+    setRefreshing(false);
+    addNotification({
+      type: 'success',
+      title: 'Data Refreshed',
+      message: 'Integration data has been updated.'
+    });
+  };
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    addNotification({
+      type: 'info',
+      title: 'Tab Changed',
+      message: `Switched to ${tabId} view.`
+    });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (value.length > 2) {
+      addNotification({
+        type: 'info',
+        title: 'Search Updated',
+        message: `Searching integrations for "${value}"...`
+      });
+    }
+  };
+
+  const handleFilterChange = (filterType: string, value: string) => {
+    if (filterType === 'status') {
+      setFilterStatus(value);
+    } else if (filterType === 'type') {
+      setFilterType(value);
+    }
+    addNotification({
+      type: 'info',
+      title: 'Filter Applied',
+      message: `Filtering by ${filterType}: ${value}`
+    });
+  };
+
   const filteredIntegrations = integrations.filter(integration => {
     const matchesSearch = integration.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          integration.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -539,12 +607,29 @@ export function IntegrationHub() {
   };
 
   const handleSync = async (integrationId: string) => {
-    setLoading(true);
-    setIntegrations(prev => prev.map(integration => 
-      integration.id === integrationId 
-        ? { ...integration, status: 'syncing' as const }
-        : integration
+    const integration = integrations.find(i => i.id === integrationId);
+    
+    if (syncingIntegrations.has(integrationId)) {
+      addNotification({
+        type: 'warning',
+        title: 'Sync In Progress',
+        message: `${integration?.name} is already syncing.`
+      });
+      return;
+    }
+
+    setSyncingIntegrations(prev => new Set([...prev, integrationId]));
+    setIntegrations(prev => prev.map(int => 
+      int.id === integrationId 
+        ? { ...int, status: 'syncing' as const }
+        : int
     ));
+
+    addNotification({
+      type: 'info',
+      title: 'Sync Started',
+      message: `Starting sync for ${integration?.name}...`
+    });
 
     try {
       const result = await IntegrationManager.syncIntegration(integrationId);
@@ -568,7 +653,7 @@ export function IntegrationHub() {
       // Add to sync logs
       const newLog: SyncLog = {
         id: Date.now().toString(),
-        integration: integrations.find(i => i.id === integrationId)?.name || 'Unknown',
+        integration: integration?.name || 'Unknown',
         operation: 'Manual Sync',
         status: result.success ? 'success' : 'failed',
         timestamp: new Date().toISOString(),
@@ -582,6 +667,14 @@ export function IntegrationHub() {
       };
 
       setSyncLogs(prev => [newLog, ...prev]);
+      
+      addNotification({
+        type: result.success ? 'success' : 'error',
+        title: result.success ? 'Sync Completed' : 'Sync Failed',
+        message: result.success 
+          ? `${integration?.name} sync completed successfully.`
+          : `${integration?.name} sync failed. Please check configuration.`
+      });
     } catch (error) {
       console.error('Sync failed:', error);
       setIntegrations(prev => prev.map(integration => 
@@ -589,12 +682,22 @@ export function IntegrationHub() {
           ? { ...integration, status: 'error' as const }
           : integration
       ));
+      addNotification({
+        type: 'error',
+        title: 'Sync Error',
+        message: `Failed to sync ${integration?.name}. Please try again.`
+      });
     } finally {
-      setLoading(false);
+      setSyncingIntegrations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(integrationId);
+        return newSet;
+      });
     }
   };
 
   const handleToggleIntegration = (integrationId: string, enable: boolean) => {
+    const integration = integrations.find(i => i.id === integrationId);
     setIntegrations(prev => prev.map(integration => 
       integration.id === integrationId 
         ? { 
@@ -604,18 +707,90 @@ export function IntegrationHub() {
           }
         : integration
     ));
+    
+    addNotification({
+      type: enable ? 'success' : 'info',
+      title: enable ? 'Integration Enabled' : 'Integration Disabled',
+      message: `${integration?.name} has been ${enable ? 'enabled' : 'disabled'}.`
+    });
   };
 
   const handleSetupIntegration = (template: IntegrationTemplate) => {
     setSelectedTemplate(template);
     setShowSetupModal(true);
+    addNotification({
+      type: 'info',
+      title: 'Setup Integration',
+      message: `Starting setup for ${template.name}.`
+    });
   };
 
   const handleSetupComplete = () => {
     setShowSetupModal(false);
     setSelectedTemplate(null);
-    loadIntegrations(); // Reload integrations
+    loadIntegrations();
+    addNotification({
+      type: 'success',
+      title: 'Integration Setup Complete',
+      message: 'Integration has been configured successfully.'
+    });
   };
+
+  const handleConfigureIntegration = (integrationId: string) => {
+    const integration = integrations.find(i => i.id === integrationId);
+    addNotification({
+      type: 'info',
+                onChange={(e) => handleSearchChange(e.target.value)}
+      message: `Opening configuration for ${integration?.name}.`
+    });
+  };
+
+  const handleViewLogs = (integrationId: string) => {
+    const integration = integrations.find(i => i.id === integrationId);
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+    addNotification({
+      type: 'info',
+      title: 'View Logs',
+      message: `Viewing sync logs for ${integration?.name}.`
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                onChange={(e) => handleFilterChange('type', e.target.value)}
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded"></div>
+              ))}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 p-2"
+              >
+                <Refresh className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+          
+          {templates.length === 0 && (
+            <div className="text-center py-12">
+              <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No templates available</h3>
+              <p className="text-gray-500">Integration templates will be loaded here.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const renderOverviewTab = () => (
     <div className="space-y-6">
@@ -794,15 +969,25 @@ export function IntegrationHub() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleSync(integration.id)}
-                  disabled={integration.status === 'syncing' || loading}
+                  disabled={syncingIntegrations.has(integration.id)}
                   className="text-indigo-600 hover:text-indigo-700 text-sm font-medium disabled:opacity-50 flex items-center space-x-1"
                 >
-                  <Refresh className={`h-3 w-3 ${integration.status === 'syncing' ? 'animate-spin' : ''}`} />
-                  <span>{integration.status === 'syncing' ? 'Syncing...' : 'Sync Now'}</span>
+                  <Refresh className={`h-3 w-3 ${syncingIntegrations.has(integration.id) ? 'animate-spin' : ''}`} />
+                  <span>{syncingIntegrations.has(integration.id) ? 'Syncing...' : 'Sync Now'}</span>
                 </button>
-                <button className="text-gray-600 hover:text-gray-700 text-sm font-medium flex items-center space-x-1">
+                <button 
+                  onClick={() => handleConfigureIntegration(integration.id)}
+                  className="text-gray-600 hover:text-gray-700 text-sm font-medium flex items-center space-x-1"
+                >
                   <Settings className="h-3 w-3" />
                   <span>Configure</span>
+                </button>
+                <button 
+                  onClick={() => handleViewLogs(integration.id)}
+                  className="text-gray-600 hover:text-gray-700 text-sm font-medium flex items-center space-x-1"
+                >
+                  <FileText className="h-3 w-3" />
+                  <span>Logs</span>
                 </button>
               </div>
               <div className="flex items-center space-x-2">
@@ -823,6 +1008,24 @@ export function IntegrationHub() {
             </div>
           </div>
         ))}
+        
+        {filteredIntegrations.length === 0 && (
+          <div className="text-center py-12">
+            <Link className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No integrations found</h3>
+            <p className="text-gray-500 mb-4">
+              {searchTerm || filterStatus !== 'all' || filterType !== 'all'
+                ? 'Try adjusting your search or filter criteria.'
+                : 'Set up your first integration to get started.'}
+            </p>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+            >
+              Browse Templates
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -833,14 +1036,33 @@ export function IntegrationHub() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">Sync Activity Logs</h2>
           <div className="flex items-center space-x-2">
-            <button className="text-gray-400 hover:text-gray-600">
+            <button 
+              onClick={() => {
+                addNotification({
+                  type: 'info',
+                  title: 'Export Logs',
+                  message: 'Preparing log export...'
+                });
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
               <Download className="h-4 w-4" />
             </button>
             <button 
-              onClick={loadSyncLogs}
+              onClick={async () => {
+                setRefreshing(true);
+                await loadSyncLogs();
+                setRefreshing(false);
+                addNotification({
+                  type: 'success',
+                  title: 'Logs Refreshed',
+                  message: 'Sync logs have been updated.'
+                });
+              }}
+              disabled={refreshing}
               className="text-gray-400 hover:text-gray-600"
             >
-              <Refresh className="h-4 w-4" />
+              <Refresh className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -986,7 +1208,7 @@ export function IntegrationHub() {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-indigo-500 text-indigo-600'
@@ -1008,7 +1230,45 @@ export function IntegrationHub() {
       {activeTab === 'settings' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Integration Settings</h2>
-          <p className="text-gray-500">Global integration settings and preferences will be available here.</p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900">Auto-sync All Integrations</h4>
+                <p className="text-sm text-gray-500">Enable automatic synchronization for all connected integrations</p>
+              </div>
+              <button
+                onClick={() => {
+                  addNotification({
+                    type: 'info',
+                    title: 'Auto-sync Setting',
+                    message: 'Auto-sync setting will be implemented soon.'
+                  });
+                }}
+                className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200"
+              >
+                <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1" />
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900">Error Notifications</h4>
+                <p className="text-sm text-gray-500">Receive notifications when sync errors occur</p>
+              </div>
+              <button
+                onClick={() => {
+                  addNotification({
+                    type: 'info',
+                    title: 'Notification Setting',
+                    message: 'Error notification setting updated.'
+                  });
+                }}
+                className="relative inline-flex h-6 w-11 items-center rounded-full bg-indigo-600"
+              >
+                <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1027,6 +1287,11 @@ export function IntegrationHub() {
           onCancel={() => {
             setShowSetupModal(false);
             setSelectedTemplate(null);
+            addNotification({
+              type: 'info',
+              title: 'Setup Cancelled',
+              message: 'Integration setup has been cancelled.'
+            });
           }}
         />
       )}

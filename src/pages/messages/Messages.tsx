@@ -31,15 +31,35 @@ export function Messages() {
   // Get pre-selected patient from navigation state
   const preSelectedPatient = location.state?.patientId;
   
+  // State management
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(preSelectedPatient || null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filterPriority, setFilterPriority] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  // Mock data for preview
   useEffect(() => {
+    loadConversations();
+  }, []);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation);
+    }
+  }, [selectedConversation]);
+
+  const loadConversations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Mock data - in production this would come from Supabase
     setConversations([
       {
         id: '1',
@@ -76,7 +96,23 @@ export function Messages() {
       }
     ]);
 
-    // Mock messages for first conversation
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (err) {
+      setError('Failed to load conversations');
+      addNotification({
+        type: 'error',
+        title: 'Loading Error',
+        message: 'Failed to load conversations. Please try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMessages = async (conversationId: string) => {
+    try {
+      // Mock messages for conversation
     setMessages([
       {
         id: '1',
@@ -112,15 +148,42 @@ export function Messages() {
       }
     ]);
 
-    setSelectedConversation('1');
-  }, []);
+      // Mark conversation as read
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unread_count: 0 }
+          : conv
+      ));
+    } catch (err) {
+      addNotification({
+        type: 'error',
+        title: 'Loading Error',
+        message: 'Failed to load messages.'
+      });
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadConversations();
+    if (selectedConversation) {
+      await loadMessages(selectedConversation);
+    }
+    setRefreshing(false);
+    addNotification({
+      type: 'success',
+      title: 'Messages Refreshed',
+      message: 'Your messages have been updated.'
+    });
+  };
 
   const handleSelectConversation = (conversationId: string) => {
+    const conversation = conversations.find(c => c.id === conversationId);
     setSelectedConversation(conversationId);
     addNotification({
       type: 'info',
-      title: 'Conversation Selected',
-      message: 'Loading conversation messages...'
+      title: 'Conversation Opened',
+      message: `Opening conversation with ${conversation?.provider_name}.`
     });
   };
 
@@ -130,12 +193,27 @@ export function Messages() {
       title: 'New Conversation',
       message: 'Starting a new conversation with a healthcare provider.'
     });
+    // In production, this would open a provider selection modal
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.provider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.subject.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (value.length > 2) {
+      addNotification({
+        type: 'info',
+        title: 'Search Updated',
+        message: `Searching conversations for "${value}"...`
+      });
+    }
+  };
+
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = conv.provider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         conv.subject.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPriority = filterPriority === 'all' || conv.priority === filterPriority;
+    const matchesStatus = filterStatus === 'all' || conv.status === filterStatus;
+    return matchesSearch && matchesPriority && matchesStatus;
+  });
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,6 +237,18 @@ export function Messages() {
     };
 
     setMessages(prev => [...prev, message]);
+    
+    // Update conversation last message
+    setConversations(prev => prev.map(conv => 
+      conv.id === selectedConversation 
+        ? { 
+            ...conv, 
+            last_message: newMessage,
+            last_message_time: new Date().toISOString()
+          }
+        : conv
+    ));
+    
     setNewMessage('');
     
     setTimeout(() => {
@@ -178,6 +268,29 @@ export function Messages() {
       message: 'File attachment feature will be available soon.'
     });
   };
+
+  const handleMarkAsRead = (conversationId: string) => {
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId 
+        ? { ...conv, unread_count: 0 }
+        : conv
+    ));
+  };
+
+  const handleArchiveConversation = (conversationId: string) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId 
+        ? { ...conv, status: 'archived' as const }
+        : conv
+    ));
+    addNotification({
+      type: 'success',
+      title: 'Conversation Archived',
+      message: `Conversation with ${conversation?.provider_name} has been archived.`
+    });
+  };
+
   const getPriorityColor = (priority: string) => {
     const colors = {
       low: 'bg-gray-100 text-gray-800',
@@ -188,6 +301,31 @@ export function Messages() {
     return colors[priority as keyof typeof colors] || colors.normal;
   };
 
+  if (loading) {
+    return (
+      <div className="h-[calc(100vh-12rem)] flex bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="w-1/3 border-r border-gray-200 p-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded"></div>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 p-4">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-12rem)] flex bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Conversations List */}
@@ -195,12 +333,21 @@ export function Messages() {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-            <button
-              onClick={handleNewConversation}
-              className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 p-1"
+              >
+                <Activity className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={handleNewConversation}
+                className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -208,9 +355,33 @@ export function Messages() {
               type="text"
               placeholder="Search conversations..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
+          </div>
+          
+          {/* Filters */}
+          <div className="flex space-x-2 mt-2">
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="all">All Priority</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="normal">Normal</option>
+              <option value="low">Low</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
         </div>
 
@@ -256,6 +427,16 @@ export function Messages() {
               </p>
             </div>
           ))}
+          
+          {filteredConversations.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <p>No conversations found</p>
+              {searchTerm && (
+                <p className="text-xs mt-1">Try adjusting your search criteria</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -275,6 +456,20 @@ export function Messages() {
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleMarkAsRead(selectedConversation)}
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                    title="Mark as read"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleArchiveConversation(selectedConversation)}
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                    title="Archive conversation"
+                  >
+                    <Archive className="h-4 w-4" />
+                  </button>
                   <button className="p-2 text-gray-400 hover:text-gray-600">
                     <Filter className="h-4 w-4" />
                   </button>
@@ -311,6 +506,7 @@ export function Messages() {
             {/* Message Input */}
             <div className="p-4 border-t border-gray-200">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+                  <p className="text-xs mt-1">Start the conversation by sending a message</p>
                 <button
                   type="button"
                   onClick={handleAttachFile}
@@ -352,6 +548,12 @@ export function Messages() {
               <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
               <p className="text-gray-500">Choose a conversation from the list to start messaging</p>
+              <button
+                onClick={handleNewConversation}
+                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+              >
+                Start New Conversation
+              </button>
             </div>
           </div>
         )}

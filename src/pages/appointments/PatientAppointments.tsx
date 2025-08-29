@@ -63,11 +63,16 @@ export function PatientAppointments() {
   const location = useLocation();
   const { addNotification, setLoading } = useAppStore();
   const { openModal, closeModal, modals, setModalData, modalData, showConfirmDialog } = useModalStore();
+  
+  // State management
   const [currentView, setCurrentView] = useState<'overview' | 'book' | 'history'>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [loading, setLocalLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Set view based on URL path
   useEffect(() => {
@@ -81,8 +86,17 @@ export function PatientAppointments() {
     }
   }, [location.pathname]);
 
-  // Mock data
+  // Load appointments data
   useEffect(() => {
+    loadAppointments();
+  }, []);
+
+  const loadAppointments = async () => {
+    try {
+      setLocalLoading(true);
+      setError(null);
+      
+      // Mock data - in production this would come from Supabase
     const mockAppointments: Appointment[] = [
       {
         id: '1',
@@ -197,19 +211,50 @@ export function PatientAppointments() {
       }
     ];
 
-    setAppointments(mockAppointments);
-    setProviders(mockProviders);
-  }, []);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      setAppointments(mockAppointments);
+      setProviders(mockProviders);
+    } catch (err) {
+      setError('Failed to load appointments');
+      addNotification({
+        type: 'error',
+        title: 'Loading Error',
+        message: 'Failed to load appointments. Please try again.'
+      });
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadAppointments();
+    setRefreshing(false);
+    addNotification({
+      type: 'success',
+      title: 'Appointments Refreshed',
+      message: 'Your appointments have been updated.'
+    });
+  };
 
   const handleJoinVideo = (appointmentId: string) => {
+    const appointment = appointments.find(a => a.id === appointmentId);
+    addNotification({
+      type: 'info',
+      title: 'Joining Video Call',
+      message: `Connecting to your appointment with ${appointment?.provider_name}...`
+    });
     navigate('/telehealth');
   };
 
   const handleReschedule = (appointmentId: string) => {
+    const appointment = appointments.find(a => a.id === appointmentId);
     addNotification({
       type: 'info',
       title: 'Reschedule Appointment',
-      message: 'Redirecting to reschedule your appointment.'
+      message: `Rescheduling appointment with ${appointment?.provider_name}.`
     });
     navigate('/appointments/book');
   };
@@ -231,7 +276,7 @@ export function PatientAppointments() {
         addNotification({
           type: 'success',
           title: 'Appointment Cancelled',
-          message: 'Your appointment has been successfully cancelled.'
+          message: `Your appointment with ${appointment?.provider_name} has been cancelled.`
         });
       }
     });
@@ -240,22 +285,51 @@ export function PatientAppointments() {
   const handleViewDetails = (appointmentId: string) => {
     setModalData('selectedAppointment', appointmentId);
     openModal('appointmentDetails');
+    addNotification({
+      type: 'info',
+      title: 'Appointment Details',
+      message: 'Loading appointment information.'
+    });
   };
 
   const handleBookWithProvider = (providerId: string) => {
+    const provider = providers.find(p => p.id === providerId);
     addNotification({
       type: 'info',
       title: 'Booking Appointment',
-      message: 'Proceeding to book appointment with selected provider.'
+      message: `Proceeding to book with ${provider?.name}.`
     });
     navigate('/appointments/book', { state: { providerId } });
   };
 
   const handleViewProviderProfile = (providerId: string) => {
+    const provider = providers.find(p => p.id === providerId);
     addNotification({
       type: 'info',
       title: 'Provider Profile',
-      message: 'Viewing provider details and reviews.'
+      message: `Viewing ${provider?.name}'s profile and reviews.`
+    });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (value.length > 2) {
+      addNotification({
+        type: 'info',
+        title: 'Search Updated',
+        message: `Searching for "${value}"...`
+      });
+    }
+  };
+
+  const handleFilterChange = (filterType: string, value: string) => {
+    if (filterType === 'status') {
+      setFilterStatus(value);
+    }
+    addNotification({
+      type: 'info',
+      title: 'Filter Applied',
+      message: `Filtering by ${filterType}: ${value}`
     });
   };
 
@@ -302,6 +376,28 @@ export function PatientAppointments() {
     const matchesFilter = filterStatus === 'all' || apt.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -414,14 +510,14 @@ export function PatientAppointments() {
               type="text"
               placeholder="Search appointments..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div className="flex space-x-2">
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="all">All Status</option>
@@ -431,11 +527,21 @@ export function PatientAppointments() {
               <option value="cancelled">Cancelled</option>
             </select>
             <button
-              onClick={() => setCurrentView('book')}
+              onClick={() => {
+                setCurrentView('book');
+                navigate('/appointments/book');
+              }}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
             >
               <Plus className="h-4 w-4" />
               <span>Book Appointment</span>
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="text-gray-400 hover:text-gray-600 disabled:opacity-50 p-2"
+            >
+              <Activity className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -506,7 +612,10 @@ export function PatientAppointments() {
                   {appointment.status === 'scheduled' || appointment.status === 'confirmed' ? (
                     <>
                       {appointment.appointment_method === 'telehealth' && (
-                        <button className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center space-x-1">
+                        <button 
+                          onClick={() => handleJoinVideo(appointment.id)}
+                          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center space-x-1"
+                        >
                           <Video className="h-3 w-3" />
                           <span>Join</span>
                         </button>
@@ -538,7 +647,7 @@ export function PatientAppointments() {
                         <span>Summary</span>
                       </button>
                       <button 
-                        onClick={() => openModal('createAppointment')}
+                        onClick={() => handleBookWithProvider(appointment.id)}
                         className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50"
                       >
                         Book Follow-up
@@ -561,7 +670,14 @@ export function PatientAppointments() {
                 : 'You don\'t have any appointments yet.'}
             </p>
             <button
-              onClick={() => openModal('createAppointment')}
+              onClick={() => {
+                openModal('createAppointment');
+                addNotification({
+                  type: 'info',
+                  title: 'Book Appointment',
+                  message: 'Opening appointment booking form.'
+                });
+              }}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
             >
               Book Your First Appointment
@@ -594,25 +710,62 @@ export function PatientAppointments() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Book</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+          <button 
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Quick Book',
+                message: 'Setting up general consultation booking.'
+              });
+              navigate('/appointments/book');
+            }}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center transition-colors"
+          >
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
               <User className="h-6 w-6 text-blue-600" />
             </div>
             <span className="text-sm font-medium">General Consultation</span>
           </button>
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+          <button 
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Quick Book',
+                message: 'Setting up health check booking.'
+              });
+            }}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center transition-colors"
+          >
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <span className="text-sm font-medium">Health Check</span>
           </button>
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+          <button 
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Quick Book',
+                message: 'Setting up telehealth consultation.'
+              });
+            }}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center transition-colors"
+          >
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
               <Video className="h-6 w-6 text-purple-600" />
             </div>
             <span className="text-sm font-medium">Telehealth</span>
           </button>
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+          <button 
+            onClick={() => {
+              addNotification({
+                type: 'warning',
+                title: 'Urgent Care',
+                message: 'For emergencies, please call 000 or visit your nearest emergency department.'
+              });
+            }}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center transition-colors"
+          >
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
               <AlertTriangle className="h-6 w-6 text-red-600" />
             </div>
@@ -626,9 +779,42 @@ export function PatientAppointments() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Available Providers</h3>
           <div className="flex items-center space-x-2">
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm">📍 Near me</button>
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm">⭐ Highly rated</button>
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm">💰 Bulk billing</button>
+            <button 
+              onClick={() => {
+                addNotification({
+                  type: 'info',
+                  title: 'Location Filter',
+                  message: 'Showing providers near your location.'
+                });
+              }}
+              className="text-indigo-600 hover:text-indigo-700 text-sm"
+            >
+              📍 Near me
+            </button>
+            <button 
+              onClick={() => {
+                addNotification({
+                  type: 'info',
+                  title: 'Rating Filter',
+                  message: 'Showing highly rated providers.'
+                });
+              }}
+              className="text-indigo-600 hover:text-indigo-700 text-sm"
+            >
+              ⭐ Highly rated
+            </button>
+            <button 
+              onClick={() => {
+                addNotification({
+                  type: 'info',
+                  title: 'Billing Filter',
+                  message: 'Showing bulk billing providers.'
+                });
+              }}
+              className="text-indigo-600 hover:text-indigo-700 text-sm"
+            >
+              💰 Bulk billing
+            </button>
           </div>
         </div>
         
@@ -637,6 +823,8 @@ export function PatientAppointments() {
           <input
             type="text"
             placeholder="Search by name, specialty, or location..."
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
@@ -690,6 +878,7 @@ export function PatientAppointments() {
                 
                 <div className="flex flex-col space-y-2">
                   <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
+                    onClick={() => handleBookWithProvider(provider.id)}
                     Book Appointment
                   </button>
                   <button 
@@ -719,7 +908,10 @@ export function PatientAppointments() {
           
           <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
             <button
-              onClick={() => setCurrentView('overview')}
+              onClick={() => {
+                setCurrentView('overview');
+                navigate('/appointments');
+              }}
               className={`px-3 py-1 rounded text-sm font-medium ${
                 currentView === 'overview' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
@@ -727,7 +919,10 @@ export function PatientAppointments() {
               Overview
             </button>
             <button
-              onClick={() => navigate('/appointments/book')}
+              onClick={() => {
+                setCurrentView('book');
+                navigate('/appointments/book');
+              }}
               className={`px-3 py-1 rounded text-sm font-medium ${
                 currentView === 'book' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
@@ -735,7 +930,10 @@ export function PatientAppointments() {
               Book New
             </button>
             <button
-              onClick={() => navigate('/appointments/history')}
+              onClick={() => {
+                setCurrentView('history');
+                navigate('/appointments/history');
+              }}
               className={`px-3 py-1 rounded text-sm font-medium ${
                 currentView === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
@@ -767,13 +965,23 @@ export function PatientAppointments() {
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(appointment.status)}`}>
                       {appointment.status}
                     </span>
-                    <button className="text-indigo-600 hover:text-indigo-700 text-sm">
+                    <button 
+                      onClick={() => handleViewDetails(appointment.id)}
+                      className="text-indigo-600 hover:text-indigo-700 text-sm"
+                    >
                       View Details
                     </button>
                   </div>
                 </div>
               </div>
             ))}
+            
+            {pastAppointments.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No appointment history available yet.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
