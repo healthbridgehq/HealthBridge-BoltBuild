@@ -22,7 +22,7 @@ interface TimeSlot {
   available: boolean;
 }
 
-export function AppointmentSchedule() {
+export function PatientDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
