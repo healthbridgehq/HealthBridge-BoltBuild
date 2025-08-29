@@ -284,7 +284,6 @@ export function PatientManagement() {
           </div>
         </div>
       </div>
-      </div>
 
       <div className="space-y-3 mb-4">
         <div className="flex items-center space-x-2 text-sm text-gray-600">
