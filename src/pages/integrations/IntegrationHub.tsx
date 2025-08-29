@@ -740,14 +740,13 @@ export function IntegrationHub() {
     const integration = integrations.find(i => i.id === integrationId);
     addNotification({
       type: 'info',
-                onChange={(e) => handleSearchChange(e.target.value)}
+      title: 'Configure Integration',
       message: `Opening configuration for ${integration?.name}.`
     });
   };
 
   const handleViewLogs = (integrationId: string) => {
     const integration = integrations.find(i => i.id === integrationId);
-                onChange={(e) => handleFilterChange('status', e.target.value)}
     addNotification({
       type: 'info',
       title: 'View Logs',
@@ -759,7 +758,6 @@ export function IntegrationHub() {
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                onChange={(e) => handleFilterChange('type', e.target.value)}
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, i) => (
