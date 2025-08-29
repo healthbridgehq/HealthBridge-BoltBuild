@@ -21,107 +21,29 @@ import {
   Camera,
   Upload
 } from 'lucide-react';
-
-interface UserProfileData {
-  personal: {
-    title: string;
-    firstName: string;
-    lastName: string;
-    preferredName: string;
-    dateOfBirth: string;
-    gender: string;
-    aboriginalTorresStrait: boolean;
-    culturalBackground: string;
-    preferredLanguage: string;
-    interpreterRequired: boolean;
-  };
-  contact: {
-    email: string;
-    mobilePhone: string;
-    homePhone: string;
-    workPhone: string;
-    residentialAddress: {
-      street: string;
-      suburb: string;
-      state: string;
-      postcode: string;
-    };
-    postalAddress: {
-      street: string;
-      suburb: string;
-      state: string;
-      postcode: string;
-    };
-    postalSameAsResidential: boolean;
-  };
-  healthcare: {
-    medicareNumber: string;
-    medicareExpiry: string;
-    medicarePosition: string;
-    dvaHasCard: boolean;
-    dvaCardType: string;
-    dvaNumber: string;
-    privateHealthHasInsurance: boolean;
-    privateHealthProvider: string;
-    privateHealthNumber: string;
-    privateHealthLevel: string;
-    pensionCardHasCard: boolean;
-    pensionCardType: string;
-    pensionCardNumber: string;
-  };
-  medical: {
-    allergies: string[];
-    currentMedications: string[];
-    medicalConditions: string[];
-    bloodType: string;
-    organDonor: boolean;
-    advanceDirective: boolean;
-    advanceDirectiveLocation: string;
-    additionalNotes: string;
-  };
-  emergencyContacts: Array<{
-    id: string;
-    name: string;
-    relationship: string;
-    phone: string;
-    email: string;
-    isPrimary: boolean;
-  }>;
-  preferences: {
-    communication: {
-      email: boolean;
-      sms: boolean;
-      phone: boolean;
-      post: boolean;
-    };
-    notifications: {
-      appointments: boolean;
-      results: boolean;
-      reminders: boolean;
-      marketing: boolean;
-    };
-    privacy: {
-      shareWithMHR: boolean;
-      shareWithSpecialists: boolean;
-      shareWithPharmacy: boolean;
-      allowResearch: boolean;
-    };
-    accessibility: {
-      largeText: boolean;
-      highContrast: boolean;
-      screenReader: boolean;
-      audioAlerts: boolean;
-    };
-  };
-}
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { FormField } from '../../components/FormField';
+import { LoadingButton } from '../../components/LoadingButton';
+import { useAppStore } from '../../stores/appStore';
 
 export function UserProfile() {
+  const { addNotification } = useAppStore();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [showSensitiveData, setShowSensitiveData] = useState(false);
-  const [profileData, setProfileData] = useState<UserProfileData>({
-    personal: {
+  
+  const {
+    data: profileData,
+    errors,
+    updateField,
+    updateNestedField,
+    validateAll,
+    handleSubmit,
+    isSubmitting,
+    getFieldError,
+    reset
+  } = useFormValidation(
+    {
       title: 'Ms',
       firstName: 'Sarah',
       lastName: 'Johnson',
@@ -131,28 +53,20 @@ export function UserProfile() {
       aboriginalTorresStrait: false,
       culturalBackground: 'Australian',
       preferredLanguage: 'English',
-      interpreterRequired: false
-    },
-    contact: {
+      interpreterRequired: false,
       email: 'sarah.johnson@email.com',
       mobilePhone: '0412 345 678',
       homePhone: '',
       workPhone: '',
-      residentialAddress: {
-        street: '123 Collins Street',
-        suburb: 'Melbourne',
-        state: 'VIC',
-        postcode: '3000'
-      },
-      postalAddress: {
-        street: '',
-        suburb: '',
-        state: '',
-        postcode: ''
-      },
-      postalSameAsResidential: true
-    },
-    healthcare: {
+      residentialStreet: '123 Collins Street',
+      residentialSuburb: 'Melbourne',
+      residentialState: 'VIC',
+      residentialPostcode: '3000',
+      postalStreet: '',
+      postalSuburb: '',
+      postalState: '',
+      postalPostcode: '',
+      postalSameAsResidential: true,
       medicareNumber: '1234567890',
       medicareExpiry: '2026-12-31',
       medicarePosition: '1',
@@ -165,9 +79,7 @@ export function UserProfile() {
       privateHealthLevel: 'Hospital & Extras',
       pensionCardHasCard: false,
       pensionCardType: '',
-      pensionCardNumber: ''
-    },
-    medical: {
+      pensionCardNumber: '',
       allergies: ['Penicillin', 'Shellfish'],
       currentMedications: ['Paracetamol 500mg as needed'],
       medicalConditions: ['Hypertension'],
@@ -175,112 +87,84 @@ export function UserProfile() {
       organDonor: true,
       advanceDirective: false,
       advanceDirectiveLocation: '',
-      additionalNotes: 'No additional medical notes'
+      additionalNotes: 'No additional medical notes',
+      emergencyContact1Name: 'John Johnson',
+      emergencyContact1Relationship: 'Spouse',
+      emergencyContact1Phone: '0423 456 789',
+      emergencyContact1Email: 'john.johnson@email.com',
+      emergencyContact1Primary: true,
+      emergencyContact2Name: 'Mary Johnson',
+      emergencyContact2Relationship: 'Mother',
+      emergencyContact2Phone: '0434 567 890',
+      emergencyContact2Email: 'mary.johnson@email.com',
+      emergencyContact2Primary: false,
+      commEmail: true,
+      commSms: true,
+      commPhone: false,
+      commPost: false,
+      notifAppointments: true,
+      notifResults: true,
+      notifReminders: true,
+      notifMarketing: false,
+      privacyMHR: true,
+      privacySpecialists: true,
+      privacyPharmacy: true,
+      privacyResearch: false,
+      accessLargeText: false,
+      accessHighContrast: false,
+      accessScreenReader: false,
+      accessAudioAlerts: false
     },
-    emergencyContacts: [
-      {
-        id: '1',
-        name: 'John Johnson',
-        relationship: 'Spouse',
-        phone: '0423 456 789',
-        email: 'john.johnson@email.com',
-        isPrimary: true
-      },
-      {
-        id: '2',
-        name: 'Mary Johnson',
-        relationship: 'Mother',
-        phone: '0434 567 890',
-        email: 'mary.johnson@email.com',
-        isPrimary: false
-      }
-    ],
-    preferences: {
-      communication: {
-        email: true,
-        sms: true,
-        phone: false,
-        post: false
-      },
-      notifications: {
-        appointments: true,
-        results: true,
-        reminders: true,
-        marketing: false
-      },
-      privacy: {
-        shareWithMHR: true,
-        shareWithSpecialists: true,
-        shareWithPharmacy: true,
-        allowResearch: false
-      },
-      accessibility: {
-        largeText: false,
-        highContrast: false,
-        screenReader: false,
-        audioAlerts: false
-      }
+    {
+      firstName: { required: true, minLength: 2, maxLength: 50 },
+      lastName: { required: true, minLength: 2, maxLength: 50 },
+      dateOfBirth: { required: true, date: true },
+      email: { required: true, email: true },
+      mobilePhone: { required: true, phone: true },
+      residentialStreet: { required: true, minLength: 5, maxLength: 100 },
+      residentialSuburb: { required: true, minLength: 2, maxLength: 50 },
+      residentialState: { required: true },
+      residentialPostcode: { required: true, pattern: /^\d{4}$/ },
+      medicareNumber: { medicare: true },
+      emergencyContact1Name: { required: true, minLength: 2, maxLength: 50 },
+      emergencyContact1Relationship: { required: true },
+      emergencyContact1Phone: { required: true, phone: true }
     }
-  });
+  );
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      // In production, this would save to Supabase
-      console.log('Saving profile data:', profileData);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving profile:', error);
-    } finally {
-      setLoading(false);
-    }
+  const onSave = async () => {
+    await handleSubmit(
+      async (data) => {
+        // In production, this would save to Supabase
+        console.log('Saving profile data:', data);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      },
+      () => {
+        setIsEditing(false);
+        addNotification({
+          type: 'success',
+          title: 'Profile Updated',
+          message: 'Your profile has been updated successfully.'
+        });
+      },
+      (error) => {
+        addNotification({
+          type: 'error',
+          title: 'Update Failed',
+          message: 'Failed to update profile. Please try again.'
+        });
+      }
+    );
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset form data if needed
-  };
-
-  const updateProfileData = (section: keyof UserProfileData, field: string, value: any) => {
-    setProfileData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
-      }
-    }));
-  };
-
-  const addEmergencyContact = () => {
-    const newContact = {
-      id: Date.now().toString(),
-      name: '',
-      relationship: '',
-      phone: '',
-      email: '',
-      isPrimary: false
-    };
-    setProfileData(prev => ({
-      ...prev,
-      emergencyContacts: [...prev.emergencyContacts, newContact]
-    }));
-  };
-
-  const removeEmergencyContact = (id: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      emergencyContacts: prev.emergencyContacts.filter(contact => contact.id !== id)
-    }));
-  };
-
-  const updateEmergencyContact = (id: string, field: string, value: any) => {
-    setProfileData(prev => ({
-      ...prev,
-      emergencyContacts: prev.emergencyContacts.map(contact =>
-        contact.id === id ? { ...contact, [field]: value } : contact
-      )
-    }));
+    reset();
+    addNotification({
+      type: 'info',
+      title: 'Changes Cancelled',
+      message: 'Profile changes have been cancelled.'
+    });
   };
 
   const tabs = [
@@ -295,116 +179,109 @@ export function UserProfile() {
   const renderPersonalTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-          <select
-            value={profileData.personal.title}
-            onChange={(e) => updateProfileData('personal', 'title', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          >
-            <option value="Mr">Mr</option>
-            <option value="Ms">Ms</option>
-            <option value="Mrs">Mrs</option>
-            <option value="Dr">Dr</option>
-            <option value="Prof">Prof</option>
-          </select>
-        </div>
+        <FormField
+          label="Title"
+          name="title"
+          type="select"
+          value={profileData.title}
+          onChange={updateField}
+          options={[
+            { value: 'Mr', label: 'Mr' },
+            { value: 'Ms', label: 'Ms' },
+            { value: 'Mrs', label: 'Mrs' },
+            { value: 'Dr', label: 'Dr' },
+            { value: 'Prof', label: 'Prof' }
+          ]}
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
-          <input
-            type="text"
-            value={profileData.personal.firstName}
-            onChange={(e) => updateProfileData('personal', 'firstName', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            required
-          />
-        </div>
+        <FormField
+          label="First Name"
+          name="firstName"
+          type="text"
+          value={profileData.firstName}
+          onChange={updateField}
+          error={getFieldError('firstName')}
+          required
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
-          <input
-            type="text"
-            value={profileData.personal.lastName}
-            onChange={(e) => updateProfileData('personal', 'lastName', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            required
-          />
-        </div>
+        <FormField
+          label="Last Name"
+          name="lastName"
+          type="text"
+          value={profileData.lastName}
+          onChange={updateField}
+          error={getFieldError('lastName')}
+          required
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Name</label>
-          <input
-            type="text"
-            value={profileData.personal.preferredName}
-            onChange={(e) => updateProfileData('personal', 'preferredName', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          />
-        </div>
+        <FormField
+          label="Preferred Name"
+          name="preferredName"
+          type="text"
+          value={profileData.preferredName}
+          onChange={updateField}
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
-          <input
-            type="date"
-            value={profileData.personal.dateOfBirth}
-            onChange={(e) => updateProfileData('personal', 'dateOfBirth', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            required
-          />
-        </div>
+        <FormField
+          label="Date of Birth"
+          name="dateOfBirth"
+          type="date"
+          value={profileData.dateOfBirth}
+          onChange={updateField}
+          error={getFieldError('dateOfBirth')}
+          required
+          disabled={!isEditing}
+          max={new Date().toISOString().split('T')[0]}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-          <select
-            value={profileData.personal.gender}
-            onChange={(e) => updateProfileData('personal', 'gender', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          >
-            <option value="">Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Non-binary">Non-binary</option>
-            <option value="Other">Other</option>
-            <option value="Prefer not to say">Prefer not to say</option>
-          </select>
-        </div>
+        <FormField
+          label="Gender"
+          name="gender"
+          type="select"
+          value={profileData.gender}
+          onChange={updateField}
+          options={[
+            { value: 'Male', label: 'Male' },
+            { value: 'Female', label: 'Female' },
+            { value: 'Non-binary', label: 'Non-binary' },
+            { value: 'Other', label: 'Other' },
+            { value: 'Prefer not to say', label: 'Prefer not to say' }
+          ]}
+          disabled={!isEditing}
+        />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Cultural Background</label>
-          <input
-            type="text"
-            value={profileData.personal.culturalBackground}
-            onChange={(e) => updateProfileData('personal', 'culturalBackground', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          />
-        </div>
+        <FormField
+          label="Cultural Background"
+          name="culturalBackground"
+          type="text"
+          value={profileData.culturalBackground}
+          onChange={updateField}
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
-          <select
-            value={profileData.personal.preferredLanguage}
-            onChange={(e) => updateProfileData('personal', 'preferredLanguage', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          >
-            <option value="English">English</option>
-            <option value="Mandarin">Mandarin</option>
-            <option value="Arabic">Arabic</option>
-            <option value="Vietnamese">Vietnamese</option>
-            <option value="Italian">Italian</option>
-            <option value="Greek">Greek</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
+        <FormField
+          label="Preferred Language"
+          name="preferredLanguage"
+          type="select"
+          value={profileData.preferredLanguage}
+          onChange={updateField}
+          options={[
+            { value: 'English', label: 'English' },
+            { value: 'Mandarin', label: 'Mandarin' },
+            { value: 'Arabic', label: 'Arabic' },
+            { value: 'Vietnamese', label: 'Vietnamese' },
+            { value: 'Italian', label: 'Italian' },
+            { value: 'Greek', label: 'Greek' },
+            { value: 'Other', label: 'Other' }
+          ]}
+          disabled={!isEditing}
+        />
       </div>
       
       <div className="space-y-4">
@@ -412,8 +289,8 @@ export function UserProfile() {
           <input
             type="checkbox"
             id="aboriginal"
-            checked={profileData.personal.aboriginalTorresStrait}
-            onChange={(e) => updateProfileData('personal', 'aboriginalTorresStrait', e.target.checked)}
+            checked={profileData.aboriginalTorresStrait}
+            onChange={(e) => updateField('aboriginalTorresStrait', e.target.checked)}
             disabled={!isEditing}
             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
           />
@@ -426,8 +303,8 @@ export function UserProfile() {
           <input
             type="checkbox"
             id="interpreter"
-            checked={profileData.personal.interpreterRequired}
-            onChange={(e) => updateProfileData('personal', 'interpreterRequired', e.target.checked)}
+            checked={profileData.interpreterRequired}
+            onChange={(e) => updateField('interpreterRequired', e.target.checked)}
             disabled={!isEditing}
             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
           />
@@ -442,122 +319,115 @@ export function UserProfile() {
   const renderContactTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-          <input
-            type="email"
-            value={profileData.contact.email}
-            onChange={(e) => updateProfileData('contact', 'email', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            required
-          />
-        </div>
+        <FormField
+          label="Email Address"
+          name="email"
+          type="email"
+          value={profileData.email}
+          onChange={updateField}
+          error={getFieldError('email')}
+          required
+          icon={<Mail className="h-4 w-4" />}
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Phone *</label>
-          <input
-            type="tel"
-            value={profileData.contact.mobilePhone}
-            onChange={(e) => updateProfileData('contact', 'mobilePhone', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-            required
-          />
-        </div>
+        <FormField
+          label="Mobile Phone"
+          name="mobilePhone"
+          type="tel"
+          value={profileData.mobilePhone}
+          onChange={updateField}
+          error={getFieldError('mobilePhone')}
+          required
+          icon={<Phone className="h-4 w-4" />}
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Home Phone</label>
-          <input
-            type="tel"
-            value={profileData.contact.homePhone}
-            onChange={(e) => updateProfileData('contact', 'homePhone', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          />
-        </div>
+        <FormField
+          label="Home Phone"
+          name="homePhone"
+          type="tel"
+          value={profileData.homePhone}
+          onChange={updateField}
+          icon={<Phone className="h-4 w-4" />}
+          disabled={!isEditing}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Work Phone</label>
-          <input
-            type="tel"
-            value={profileData.contact.workPhone}
-            onChange={(e) => updateProfileData('contact', 'workPhone', e.target.value)}
-            disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          />
-        </div>
+        <FormField
+          label="Work Phone"
+          name="workPhone"
+          type="tel"
+          value={profileData.workPhone}
+          onChange={updateField}
+          icon={<Phone className="h-4 w-4" />}
+          disabled={!isEditing}
+        />
       </div>
       
       <div>
         <h4 className="text-lg font-medium text-gray-900 mb-4">Residential Address</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
-            <input
+            <FormField
+              label="Street Address"
+              name="residentialStreet"
               type="text"
-              value={profileData.contact.residentialAddress.street}
-              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
-                ...profileData.contact.residentialAddress,
-                street: e.target.value
-              })}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+              value={profileData.residentialStreet}
+              onChange={updateField}
+              error={getFieldError('residentialStreet')}
               required
+              icon={<MapPin className="h-4 w-4" />}
+              disabled={!isEditing}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Suburb *</label>
-            <input
+            <FormField
+              label="Suburb"
+              name="residentialSuburb"
               type="text"
-              value={profileData.contact.residentialAddress.suburb}
-              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
-                ...profileData.contact.residentialAddress,
-                suburb: e.target.value
-              })}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+              value={profileData.residentialSuburb}
+              onChange={updateField}
+              error={getFieldError('residentialSuburb')}
               required
+              disabled={!isEditing}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
-            <select
-              value={profileData.contact.residentialAddress.state}
-              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
-                ...profileData.contact.residentialAddress,
-                state: e.target.value
-              })}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+            <FormField
+              label="State"
+              name="residentialState"
+              type="select"
+              value={profileData.residentialState}
+              onChange={updateField}
+              error={getFieldError('residentialState')}
               required
-            >
-              <option value="">Select state</option>
-              <option value="NSW">NSW</option>
-              <option value="VIC">VIC</option>
-              <option value="QLD">QLD</option>
-              <option value="SA">SA</option>
-              <option value="WA">WA</option>
-              <option value="TAS">TAS</option>
-              <option value="NT">NT</option>
-              <option value="ACT">ACT</option>
-            </select>
+              options={[
+                { value: 'NSW', label: 'NSW' },
+                { value: 'VIC', label: 'VIC' },
+                { value: 'QLD', label: 'QLD' },
+                { value: 'SA', label: 'SA' },
+                { value: 'WA', label: 'WA' },
+                { value: 'TAS', label: 'TAS' },
+                { value: 'NT', label: 'NT' },
+                { value: 'ACT', label: 'ACT' }
+              ]}
+              disabled={!isEditing}
+            />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Postcode *</label>
-            <input
+            <FormField
+              label="Postcode"
+              name="residentialPostcode"
               type="text"
-              value={profileData.contact.residentialAddress.postcode}
-              onChange={(e) => updateProfileData('contact', 'residentialAddress', {
-                ...profileData.contact.residentialAddress,
-                postcode: e.target.value
-              })}
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
+              value={profileData.residentialPostcode}
+              onChange={updateField}
+              error={getFieldError('residentialPostcode')}
               required
+              placeholder="3000"
+              disabled={!isEditing}
             />
           </div>
         </div>
@@ -592,8 +462,8 @@ export function UserProfile() {
             <div className="relative">
               <input
                 type={showSensitiveData ? 'text' : 'password'}
-                value={profileData.healthcare.medicareNumber}
-                onChange={(e) => updateProfileData('healthcare', 'medicareNumber', e.target.value)}
+                value={profileData.medicareNumber}
+                onChange={(e) => updateField('medicareNumber', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               />
@@ -615,8 +485,8 @@ export function UserProfile() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
             <input
               type="text"
-              value={profileData.healthcare.medicarePosition}
-              onChange={(e) => updateProfileData('healthcare', 'medicarePosition', e.target.value)}
+              value={profileData.medicarePosition}
+              onChange={(e) => updateField('medicarePosition', e.target.value)}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
             />
@@ -626,8 +496,8 @@ export function UserProfile() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
             <input
               type="date"
-              value={profileData.healthcare.medicareExpiry}
-              onChange={(e) => updateProfileData('healthcare', 'medicareExpiry', e.target.value)}
+              value={profileData.medicareExpiry}
+              onChange={(e) => updateField('medicareExpiry', e.target.value)}
               disabled={!isEditing}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
             />
@@ -646,8 +516,8 @@ export function UserProfile() {
             <input
               type="checkbox"
               id="hasPrivateHealth"
-              checked={profileData.healthcare.privateHealthHasInsurance}
-              onChange={(e) => updateProfileData('healthcare', 'privateHealthHasInsurance', e.target.checked)}
+              checked={profileData.privateHealthHasInsurance}
+              onChange={(e) => updateField('privateHealthHasInsurance', e.target.checked)}
               disabled={!isEditing}
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
             />
@@ -657,14 +527,14 @@ export function UserProfile() {
           </div>
         </div>
         
-        {profileData.healthcare.privateHealthHasInsurance && (
+        {profileData.privateHealthHasInsurance && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
               <input
                 type="text"
-                value={profileData.healthcare.privateHealthProvider}
-                onChange={(e) => updateProfileData('healthcare', 'privateHealthProvider', e.target.value)}
+                value={profileData.privateHealthProvider}
+                onChange={(e) => updateField('privateHealthProvider', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               />
@@ -674,8 +544,8 @@ export function UserProfile() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Member Number</label>
               <input
                 type={showSensitiveData ? 'text' : 'password'}
-                value={profileData.healthcare.privateHealthNumber}
-                onChange={(e) => updateProfileData('healthcare', 'privateHealthNumber', e.target.value)}
+                value={profileData.privateHealthNumber}
+                onChange={(e) => updateField('privateHealthNumber', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               />
@@ -684,8 +554,8 @@ export function UserProfile() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Coverage Level</label>
               <select
-                value={profileData.healthcare.privateHealthLevel}
-                onChange={(e) => updateProfileData('healthcare', 'privateHealthLevel', e.target.value)}
+                value={profileData.privateHealthLevel}
+                onChange={(e) => updateField('privateHealthLevel', e.target.value)}
                 disabled={!isEditing}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
               >
@@ -717,23 +587,25 @@ export function UserProfile() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Blood Type</label>
-          <select
-            value={profileData.medical.bloodType}
-            onChange={(e) => updateProfileData('medical', 'bloodType', e.target.value)}
+          <FormField
+            label="Blood Type"
+            name="bloodType"
+            type="select"
+            value={profileData.bloodType}
+            onChange={updateField}
+            options={[
+              { value: '', label: 'Unknown' },
+              { value: 'A+', label: 'A+' },
+              { value: 'A-', label: 'A-' },
+              { value: 'B+', label: 'B+' },
+              { value: 'B-', label: 'B-' },
+              { value: 'AB+', label: 'AB+' },
+              { value: 'AB-', label: 'AB-' },
+              { value: 'O+', label: 'O+' },
+              { value: 'O-', label: 'O-' }
+            ]}
             disabled={!isEditing}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-          >
-            <option value="">Unknown</option>
-            <option value="A+">A+</option>
-            <option value="A-">A-</option>
-            <option value="B+">B+</option>
-            <option value="B-">B-</option>
-            <option value="AB+">AB+</option>
-            <option value="AB-">AB-</option>
-            <option value="O+">O+</option>
-            <option value="O-">O-</option>
-          </select>
+          />
         </div>
       </div>
 
@@ -742,8 +614,8 @@ export function UserProfile() {
           <input
             type="checkbox"
             id="organDonor"
-            checked={profileData.medical.organDonor}
-            onChange={(e) => updateProfileData('medical', 'organDonor', e.target.checked)}
+            checked={profileData.organDonor}
+            onChange={(e) => updateField('organDonor', e.target.checked)}
             disabled={!isEditing}
             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
           />
@@ -756,8 +628,8 @@ export function UserProfile() {
           <input
             type="checkbox"
             id="advanceDirective"
-            checked={profileData.medical.advanceDirective}
-            onChange={(e) => updateProfileData('medical', 'advanceDirective', e.target.checked)}
+            checked={profileData.advanceDirective}
+            onChange={(e) => updateField('advanceDirective', e.target.checked)}
             disabled={!isEditing}
             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
           />
@@ -768,14 +640,15 @@ export function UserProfile() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Additional Medical Notes</label>
-        <textarea
-          value={profileData.medical.additionalNotes}
-          onChange={(e) => updateProfileData('medical', 'additionalNotes', e.target.value)}
-          disabled={!isEditing}
+        <FormField
+          label="Additional Medical Notes"
+          name="additionalNotes"
+          type="textarea"
+          value={profileData.additionalNotes}
+          onChange={updateField}
           rows={4}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
           placeholder="Any additional medical information you'd like your healthcare providers to know..."
+          disabled={!isEditing}
         />
       </div>
     </div>
@@ -783,114 +656,127 @@ export function UserProfile() {
 
   const renderEmergencyTab = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Emergency Contacts</h3>
-        {isEditing && (
-          <button
-            onClick={addEmergencyContact}
-            className="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 text-sm flex items-center space-x-1"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Contact</span>
-          </button>
-        )}
+      <h3 className="text-lg font-medium text-gray-900">Emergency Contacts</h3>
+
+      {/* Primary Emergency Contact */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center space-x-2 mb-4">
+          <span className="text-sm font-medium text-gray-900">Primary Contact</span>
+          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+            Primary
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            label="Name"
+            name="emergencyContact1Name"
+            type="text"
+            value={profileData.emergencyContact1Name}
+            onChange={updateField}
+            error={getFieldError('emergencyContact1Name')}
+            required
+            disabled={!isEditing}
+          />
+          
+          <FormField
+            label="Relationship"
+            name="emergencyContact1Relationship"
+            type="select"
+            value={profileData.emergencyContact1Relationship}
+            onChange={updateField}
+            error={getFieldError('emergencyContact1Relationship')}
+            required
+            options={[
+              { value: 'Spouse', label: 'Spouse' },
+              { value: 'Partner', label: 'Partner' },
+              { value: 'Parent', label: 'Parent' },
+              { value: 'Child', label: 'Child' },
+              { value: 'Sibling', label: 'Sibling' },
+              { value: 'Friend', label: 'Friend' },
+              { value: 'Other', label: 'Other' }
+            ]}
+            disabled={!isEditing}
+          />
+          
+          <FormField
+            label="Phone"
+            name="emergencyContact1Phone"
+            type="tel"
+            value={profileData.emergencyContact1Phone}
+            onChange={updateField}
+            error={getFieldError('emergencyContact1Phone')}
+            required
+            icon={<Phone className="h-4 w-4" />}
+            disabled={!isEditing}
+          />
+          
+          <FormField
+            label="Email"
+            name="emergencyContact1Email"
+            type="email"
+            value={profileData.emergencyContact1Email}
+            onChange={updateField}
+            icon={<Mail className="h-4 w-4" />}
+            disabled={!isEditing}
+          />
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {profileData.emergencyContacts.map((contact, index) => (
-          <div key={contact.id} className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-900">Contact {index + 1}</span>
-                {contact.isPrimary && (
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                    Primary
-                  </span>
-                )}
-              </div>
-              {isEditing && (
-                <button
-                  onClick={() => removeEmergencyContact(contact.id)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-                <input
-                  type="text"
-                  value={contact.name}
-                  onChange={(e) => updateEmergencyContact(contact.id, 'name', e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Relationship *</label>
-                <select
-                  value={contact.relationship}
-                  onChange={(e) => updateEmergencyContact(contact.id, 'relationship', e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                  required
-                >
-                  <option value="">Select relationship</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Partner">Partner</option>
-                  <option value="Parent">Parent</option>
-                  <option value="Child">Child</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Friend">Friend</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
-                <input
-                  type="tel"
-                  value={contact.phone}
-                  onChange={(e) => updateEmergencyContact(contact.id, 'phone', e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={contact.email}
-                  onChange={(e) => updateEmergencyContact(contact.id, 'email', e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                />
-              </div>
-            </div>
-            
-            {isEditing && (
-              <div className="mt-4 flex items-center">
-                <input
-                  type="checkbox"
-                  id={`primary-${contact.id}`}
-                  checked={contact.isPrimary}
-                  onChange={(e) => updateEmergencyContact(contact.id, 'isPrimary', e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor={`primary-${contact.id}`} className="ml-2 text-sm text-gray-900">
-                  Primary emergency contact
-                </label>
-              </div>
-            )}
-          </div>
-        ))}
+      {/* Secondary Emergency Contact */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center space-x-2 mb-4">
+          <span className="text-sm font-medium text-gray-900">Secondary Contact</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            label="Name"
+            name="emergencyContact2Name"
+            type="text"
+            value={profileData.emergencyContact2Name}
+            onChange={updateField}
+            disabled={!isEditing}
+          />
+          
+          <FormField
+            label="Relationship"
+            name="emergencyContact2Relationship"
+            type="select"
+            value={profileData.emergencyContact2Relationship}
+            onChange={updateField}
+            options={[
+              { value: 'Spouse', label: 'Spouse' },
+              { value: 'Partner', label: 'Partner' },
+              { value: 'Parent', label: 'Parent' },
+              { value: 'Child', label: 'Child' },
+              { value: 'Sibling', label: 'Sibling' },
+              { value: 'Friend', label: 'Friend' },
+              { value: 'Other', label: 'Other' }
+            ]}
+            disabled={!isEditing}
+          />
+          
+          <FormField
+            label="Phone"
+            name="emergencyContact2Phone"
+            type="tel"
+            value={profileData.emergencyContact2Phone}
+            onChange={updateField}
+            icon={<Phone className="h-4 w-4" />}
+            disabled={!isEditing}
+          />
+          
+          <FormField
+            label="Email"
+            name="emergencyContact2Email"
+            type="email"
+            value={profileData.emergencyContact2Email}
+            onChange={updateField}
+            icon={<Mail className="h-4 w-4" />}
+            disabled={!isEditing}
+          />
+        </div>
       </div>
     </div>
   );
@@ -901,24 +787,25 @@ export function UserProfile() {
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h4 className="text-lg font-medium text-gray-900 mb-4">Communication Preferences</h4>
         <div className="space-y-3">
-          {Object.entries(profileData.preferences.communication).map(([key, value]) => (
+          {[
+            { key: 'commEmail', label: 'Email' },
+            { key: 'commSms', label: 'SMS' },
+            { key: 'commPhone', label: 'Phone' },
+            { key: 'commPost', label: 'Post' }
+          ].map(({ key, label }) => (
             <div key={key} className="flex items-center justify-between">
-              <label className="text-sm text-gray-700 capitalize">
-                {key === 'sms' ? 'SMS' : key}
-              </label>
+              <label className="text-sm text-gray-700">{label}</label>
               <button
-                onClick={() => updateProfileData('preferences', 'communication', {
-                  ...profileData.preferences.communication,
-                  [key]: !value
-                })}
+                type="button"
+                onClick={() => updateField(key, !profileData[key as keyof typeof profileData])}
                 disabled={!isEditing}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  value ? 'bg-indigo-600' : 'bg-gray-200'
+                  profileData[key as keyof typeof profileData] ? 'bg-indigo-600' : 'bg-gray-200'
                 } disabled:opacity-50`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    value ? 'translate-x-6' : 'translate-x-1'
+                    profileData[key as keyof typeof profileData] ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
@@ -931,24 +818,25 @@ export function UserProfile() {
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h4 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h4>
         <div className="space-y-3">
-          {Object.entries(profileData.preferences.notifications).map(([key, value]) => (
+          {[
+            { key: 'notifAppointments', label: 'Appointments' },
+            { key: 'notifResults', label: 'Results' },
+            { key: 'notifReminders', label: 'Reminders' },
+            { key: 'notifMarketing', label: 'Marketing' }
+          ].map(({ key, label }) => (
             <div key={key} className="flex items-center justify-between">
-              <label className="text-sm text-gray-700 capitalize">
-                {key}
-              </label>
+              <label className="text-sm text-gray-700">{label}</label>
               <button
-                onClick={() => updateProfileData('preferences', 'notifications', {
-                  ...profileData.preferences.notifications,
-                  [key]: !value
-                })}
+                type="button"
+                onClick={() => updateField(key, !profileData[key as keyof typeof profileData])}
                 disabled={!isEditing}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  value ? 'bg-indigo-600' : 'bg-gray-200'
+                  profileData[key as keyof typeof profileData] ? 'bg-indigo-600' : 'bg-gray-200'
                 } disabled:opacity-50`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    value ? 'translate-x-6' : 'translate-x-1'
+                    profileData[key as keyof typeof profileData] ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
@@ -961,27 +849,25 @@ export function UserProfile() {
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h4 className="text-lg font-medium text-gray-900 mb-4">Privacy & Data Sharing</h4>
         <div className="space-y-3">
-          {Object.entries(profileData.preferences.privacy).map(([key, value]) => (
+          {[
+            { key: 'privacyMHR', label: 'Share with My Health Record' },
+            { key: 'privacySpecialists', label: 'Share with Specialists' },
+            { key: 'privacyPharmacy', label: 'Share with Pharmacy' },
+            { key: 'privacyResearch', label: 'Allow Research Use' }
+          ].map(({ key, label }) => (
             <div key={key} className="flex items-center justify-between">
-              <label className="text-sm text-gray-700">
-                {key === 'shareWithMHR' ? 'Share with My Health Record' :
-                 key === 'shareWithSpecialists' ? 'Share with Specialists' :
-                 key === 'shareWithPharmacy' ? 'Share with Pharmacy' :
-                 key === 'allowResearch' ? 'Allow Research Use' : key}
-              </label>
+              <label className="text-sm text-gray-700">{label}</label>
               <button
-                onClick={() => updateProfileData('preferences', 'privacy', {
-                  ...profileData.preferences.privacy,
-                  [key]: !value
-                })}
+                type="button"
+                onClick={() => updateField(key, !profileData[key as keyof typeof profileData])}
                 disabled={!isEditing}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  value ? 'bg-indigo-600' : 'bg-gray-200'
+                  profileData[key as keyof typeof profileData] ? 'bg-indigo-600' : 'bg-gray-200'
                 } disabled:opacity-50`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    value ? 'translate-x-6' : 'translate-x-1'
+                    profileData[key as keyof typeof profileData] ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
@@ -991,6 +877,15 @@ export function UserProfile() {
       </div>
     </div>
   );
+
+  const handleStartEditing = () => {
+    setIsEditing(true);
+    addNotification({
+      type: 'info',
+      title: 'Edit Mode',
+      message: 'You can now edit your profile information.'
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -1006,27 +901,23 @@ export function UserProfile() {
               <>
                 <button
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={isSubmitting}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
+                <LoadingButton
+                  onClick={onSave}
+                  loading={isSubmitting}
+                  icon={<Save className="h-4 w-4" />}
+                  loadingText="Saving..."
                 >
-                  {loading ? (
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  <span>Save Changes</span>
-                </button>
+                  Save Changes
+                </LoadingButton>
               </>
             ) : (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={handleStartEditing}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center space-x-2"
               >
                 <Edit className="h-4 w-4" />

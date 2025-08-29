@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { useFormValidation } from '../../hooks/useFormValidation';
+import { FormField } from '../../components/FormField';
+import { LoadingButton } from '../../components/LoadingButton';
 import { Calendar, Clock, User, Video, MapPin, Plus } from 'lucide-react';
 
 interface Provider {
@@ -92,46 +94,31 @@ export function AppointmentSchedule() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateAll()) {
-      addNotification({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Please fill in all required fields correctly.'
-      });
-      return;
-    }
-
-    setLoading('appointments', true);
-    try {
-      // In a real app, this would create the appointment
-      console.log('Creating appointment:', {
-        provider: formData.provider,
-        type: formData.appointmentType,
-        date: formData.date,
-        time: formData.time,
-        method: formData.method,
-        notes: formData.notes
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      addNotification({
-        type: 'success',
-        title: 'Appointment Scheduled',
-        message: 'Your appointment has been successfully scheduled.'
-      });
-      
-      navigate('/appointments');
-    } catch (error) {
-      console.error('Error scheduling appointment:', error);
-      addNotification({
-        type: 'error',
-        title: 'Booking Failed',
-        message: 'Failed to schedule appointment. Please try again.'
-      });
-    } finally {
+    await handleSubmit(
+      async (data) => {
+        setLoading('appointments', true);
+        // In a real app, this would create the appointment
+        console.log('Creating appointment:', data);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      },
+      () => {
+        addNotification({
+          type: 'success',
+          title: 'Appointment Scheduled',
+          message: 'Your appointment has been successfully scheduled.'
+        });
+        navigate('/appointments');
+      },
+      (error) => {
+        addNotification({
+          type: 'error',
+          title: 'Booking Failed',
+          message: 'Failed to schedule appointment. Please try again.'
+        });
+      }
+    ).finally(() => {
       setLoading('appointments', false);
-    }
+    });
   };
 
   const handleProviderSelect = (providerId: string) => {
@@ -181,7 +168,7 @@ export function AppointmentSchedule() {
                     selectedProvider === provider.id
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={() => handleProviderSelect(provider.id)}
                 >
                   <div className="flex items-center space-x-3">
@@ -211,7 +198,7 @@ export function AppointmentSchedule() {
                     selectedType === type.id
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={() => handleTypeSelect(type.id)}
                 >
                   <div className="flex items-center justify-between">
@@ -230,24 +217,20 @@ export function AppointmentSchedule() {
 
           {/* Date Selection */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-              Preferred Date
-            </label>
-            <input
+            <FormField
+              label="Preferred Date"
+              name="date"
               type="date"
-              id="date"
               value={formData.date}
-              onChange={(e) => {
+              onChange={(name, value) => {
                 setSelectedDate(e.target.value);
-                updateField('date', e.target.value);
+                updateField(name, value);
               }}
-              min={new Date().toISOString().split('T')[0]}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              error={getFieldError('date')}
               required
+              min={new Date().toISOString().split('T')[0]}
+              disabled={isSubmitting}
             />
-            {errors.date && (
-              <p className="mt-1 text-sm text-red-600">{errors.date}</p>
-            )}
           </div>
 
           {/* Time Selection */}
@@ -269,7 +252,7 @@ export function AppointmentSchedule() {
                         : slot.available
                         ? 'border-gray-200 hover:border-gray-300 text-gray-700'
                         : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
-                    }`}
+                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {slot.time}
                   </button>
@@ -292,7 +275,7 @@ export function AppointmentSchedule() {
                   appointmentMethod === 'in_person'
                     ? 'border-indigo-500 bg-indigo-50'
                     : 'border-gray-200 hover:border-gray-300'
-                }`}
+                } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={() => handleMethodChange('in_person')}
               >
                 <div className="flex items-center space-x-3">
@@ -308,7 +291,7 @@ export function AppointmentSchedule() {
                   appointmentMethod === 'telehealth'
                     ? 'border-indigo-500 bg-indigo-50'
                     : 'border-gray-200 hover:border-gray-300'
-                }`}
+                } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={() => handleMethodChange('telehealth')}
               >
                 <div className="flex items-center space-x-3">
@@ -323,19 +306,16 @@ export function AppointmentSchedule() {
           </div>
 
           {/* Notes */}
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Notes (Optional)
-            </label>
-            <textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => updateField('notes', e.target.value)}
-              rows={3}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Any specific concerns or information for your provider..."
-            />
-          </div>
+          <FormField
+            label="Additional Notes (Optional)"
+            name="notes"
+            type="textarea"
+            value={formData.notes}
+            onChange={updateField}
+            rows={3}
+            placeholder="Any specific concerns or information for your provider..."
+            disabled={isSubmitting}
+          />
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-4">
@@ -343,17 +323,19 @@ export function AppointmentSchedule() {
               type="button"
               onClick={() => navigate('/appointments')}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
-            <button
+            <LoadingButton
               type="submit"
+              loading={isSubmitting}
               disabled={!selectedProvider || !selectedType || !selectedTime}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              icon={<Plus className="h-4 w-4" />}
+              loadingText="Scheduling..."
             >
-              <Plus className="h-4 w-4" />
-              <span>Schedule Appointment</span>
-            </button>
+              Schedule Appointment
+            </LoadingButton>
           </div>
         </form>
       </div>

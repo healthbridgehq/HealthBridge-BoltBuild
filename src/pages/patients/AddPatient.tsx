@@ -1,56 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Save, X, User, Phone, Mail, MapPin, Calendar, Heart, AlertTriangle } from 'lucide-react';
-
-interface PatientFormData {
-  personal: {
-    title: string;
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    gender: string;
-    aboriginalTorresStrait: boolean;
-    culturalBackground: string;
-    preferredLanguage: string;
-  };
-  contact: {
-    email: string;
-    mobilePhone: string;
-    homePhone: string;
-    address: {
-      street: string;
-      suburb: string;
-      state: string;
-      postcode: string;
-    };
-  };
-  healthcare: {
-    medicareNumber: string;
-    medicarePosition: string;
-    privateHealthProvider: string;
-    privateHealthNumber: string;
-  };
-  medical: {
-    allergies: string[];
-    conditions: string[];
-    medications: string[];
-    bloodType: string;
-    notes: string;
-  };
-  emergency: {
-    name: string;
-    relationship: string;
-    phone: string;
-    email: string;
-  };
-}
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { FormField } from '../../components/FormField';
+import { LoadingButton } from '../../components/LoadingButton';
+import { useAppStore } from '../../stores/appStore';
 
 export function AddPatient() {
   const navigate = useNavigate();
+  const { addNotification } = useAppStore();
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<PatientFormData>({
-    personal: {
+  
+  const {
+    data: formData,
+    errors,
+    updateField,
+    updateNestedField,
+    validateAll,
+    handleSubmit,
+    isSubmitting,
+    getFieldError
+  } = useFormValidation(
+    {
       title: '',
       firstName: '',
       lastName: '',
@@ -58,39 +29,41 @@ export function AddPatient() {
       gender: '',
       aboriginalTorresStrait: false,
       culturalBackground: '',
-      preferredLanguage: 'English'
-    },
-    contact: {
+      preferredLanguage: 'English',
       email: '',
       mobilePhone: '',
       homePhone: '',
-      address: {
-        street: '',
-        suburb: '',
-        state: '',
-        postcode: ''
-      }
-    },
-    healthcare: {
+      street: '',
+      suburb: '',
+      state: '',
+      postcode: '',
       medicareNumber: '',
       medicarePosition: '',
       privateHealthProvider: '',
-      privateHealthNumber: ''
-    },
-    medical: {
-      allergies: [],
-      conditions: [],
-      medications: [],
+      privateHealthNumber: '',
       bloodType: '',
-      notes: ''
-    },
-    emergency: {
+      medicalNotes: '',
       name: '',
       relationship: '',
-      phone: '',
-      email: ''
+      emergencyPhone: '',
+      emergencyEmail: ''
+    },
+    {
+      firstName: { required: true, minLength: 2, maxLength: 50 },
+      lastName: { required: true, minLength: 2, maxLength: 50 },
+      dateOfBirth: { required: true, date: true },
+      email: { required: true, email: true },
+      mobilePhone: { required: true, phone: true },
+      street: { required: true, minLength: 5, maxLength: 100 },
+      suburb: { required: true, minLength: 2, maxLength: 50 },
+      state: { required: true },
+      postcode: { required: true, pattern: /^\d{4}$/ },
+      medicareNumber: { medicare: true },
+      name: { required: true, minLength: 2, maxLength: 50 },
+      relationship: { required: true },
+      emergencyPhone: { required: true, phone: true }
     }
-  });
+  );
 
   const steps = [
     { id: 1, title: 'Personal Details', icon: <User className="h-4 w-4" /> },
@@ -100,19 +73,26 @@ export function AddPatient() {
     { id: 5, title: 'Emergency Contact', icon: <Users className="h-4 w-4" /> }
   ];
 
-  const updateFormData = (section: keyof PatientFormData, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
-      }
-    }));
-  };
 
   const handleNext = () => {
+    // Validate current step before proceeding
+    const stepValid = isStepValid(currentStep);
+    if (!stepValid) {
+      addNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields correctly before continuing.'
+      });
+      return;
+    }
+    
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
+      addNotification({
+        type: 'info',
+        title: 'Step Progress',
+        message: `Proceeding to step ${currentStep + 1} of ${steps.length}.`
+      });
     }
   };
 
@@ -122,111 +102,125 @@ export function AddPatient() {
     }
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      // In production, this would save to Supabase
-      console.log('Creating patient:', formData);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      navigate('/patients');
-    } catch (error) {
-      console.error('Error creating patient:', error);
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = async () => {
+    await handleSubmit(
+      async (data) => {
+        // In production, this would save to Supabase
+        console.log('Creating patient:', data);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      },
+      () => {
+        addNotification({
+          type: 'success',
+          title: 'Patient Created',
+          message: 'New patient has been successfully added to the system.'
+        });
+        navigate('/patients');
+      },
+      (error) => {
+        addNotification({
+          type: 'error',
+          title: 'Creation Failed',
+          message: 'Failed to create patient. Please try again.'
+        });
+      }
+    );
   };
 
   const renderPersonalStep = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-          <select
-            value={formData.personal.title}
-            onChange={(e) => updateFormData('personal', 'title', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select title</option>
-            <option value="Mr">Mr</option>
-            <option value="Ms">Ms</option>
-            <option value="Mrs">Mrs</option>
-            <option value="Dr">Dr</option>
-          </select>
-        </div>
+        <FormField
+          label="Title"
+          name="title"
+          type="select"
+          value={formData.title}
+          onChange={updateField}
+          options={[
+            { value: 'Mr', label: 'Mr' },
+            { value: 'Ms', label: 'Ms' },
+            { value: 'Mrs', label: 'Mrs' },
+            { value: 'Dr', label: 'Dr' }
+          ]}
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
-          <input
-            type="text"
-            value={formData.personal.firstName}
-            onChange={(e) => updateFormData('personal', 'firstName', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-            required
-          />
-        </div>
+        <FormField
+          label="First Name"
+          name="firstName"
+          type="text"
+          value={formData.firstName}
+          onChange={updateField}
+          error={getFieldError('firstName')}
+          required
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
-          <input
-            type="text"
-            value={formData.personal.lastName}
-            onChange={(e) => updateFormData('personal', 'lastName', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-            required
-          />
-        </div>
+        <FormField
+          label="Last Name"
+          name="lastName"
+          type="text"
+          value={formData.lastName}
+          onChange={updateField}
+          error={getFieldError('lastName')}
+          required
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
-          <input
-            type="date"
-            value={formData.personal.dateOfBirth}
-            onChange={(e) => updateFormData('personal', 'dateOfBirth', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-            required
-          />
-        </div>
+        <FormField
+          label="Date of Birth"
+          name="dateOfBirth"
+          type="date"
+          value={formData.dateOfBirth}
+          onChange={updateField}
+          error={getFieldError('dateOfBirth')}
+          required
+          max={new Date().toISOString().split('T')[0]}
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-          <select
-            value={formData.personal.gender}
-            onChange={(e) => updateFormData('personal', 'gender', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Non-binary">Non-binary</option>
-            <option value="Other">Other</option>
-            <option value="Prefer not to say">Prefer not to say</option>
-          </select>
-        </div>
+        <FormField
+          label="Gender"
+          name="gender"
+          type="select"
+          value={formData.gender}
+          onChange={updateField}
+          options={[
+            { value: 'Male', label: 'Male' },
+            { value: 'Female', label: 'Female' },
+            { value: 'Non-binary', label: 'Non-binary' },
+            { value: 'Other', label: 'Other' },
+            { value: 'Prefer not to say', label: 'Prefer not to say' }
+          ]}
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
-          <select
-            value={formData.personal.preferredLanguage}
-            onChange={(e) => updateFormData('personal', 'preferredLanguage', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="English">English</option>
-            <option value="Mandarin">Mandarin</option>
-            <option value="Arabic">Arabic</option>
-            <option value="Vietnamese">Vietnamese</option>
-            <option value="Italian">Italian</option>
-            <option value="Greek">Greek</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
+        <FormField
+          label="Preferred Language"
+          name="preferredLanguage"
+          type="select"
+          value={formData.preferredLanguage}
+          onChange={updateField}
+          options={[
+            { value: 'English', label: 'English' },
+            { value: 'Mandarin', label: 'Mandarin' },
+            { value: 'Arabic', label: 'Arabic' },
+            { value: 'Vietnamese', label: 'Vietnamese' },
+            { value: 'Italian', label: 'Italian' },
+            { value: 'Greek', label: 'Greek' },
+            { value: 'Other', label: 'Other' }
+          ]}
+          disabled={isSubmitting}
+        />
       </div>
       
       <div className="flex items-center">
         <input
           type="checkbox"
           id="aboriginal"
-          checked={formData.personal.aboriginalTorresStrait}
-          onChange={(e) => updateFormData('personal', 'aboriginalTorresStrait', e.target.checked)}
+          checked={formData.aboriginalTorresStrait}
+          onChange={(e) => updateField('aboriginalTorresStrait', e.target.checked)}
+          disabled={isSubmitting}
           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
         />
         <label htmlFor="aboriginal" className="ml-2 text-sm text-gray-900">
@@ -239,104 +233,107 @@ export function AddPatient() {
   const renderContactStep = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-          <input
-            type="email"
-            value={formData.contact.email}
-            onChange={(e) => updateFormData('contact', 'email', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-            required
-          />
-        </div>
+        <FormField
+          label="Email Address"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={updateField}
+          error={getFieldError('email')}
+          required
+          icon={<Mail className="h-4 w-4" />}
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Phone *</label>
-          <input
-            type="tel"
-            value={formData.contact.mobilePhone}
-            onChange={(e) => updateFormData('contact', 'mobilePhone', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-            required
-          />
-        </div>
+        <FormField
+          label="Mobile Phone"
+          name="mobilePhone"
+          type="tel"
+          value={formData.mobilePhone}
+          onChange={updateField}
+          error={getFieldError('mobilePhone')}
+          required
+          icon={<Phone className="h-4 w-4" />}
+          placeholder="0412 345 678"
+          disabled={isSubmitting}
+        />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Home Phone</label>
-          <input
-            type="tel"
-            value={formData.contact.homePhone}
-            onChange={(e) => updateFormData('contact', 'homePhone', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+        <FormField
+          label="Home Phone"
+          name="homePhone"
+          type="tel"
+          value={formData.homePhone}
+          onChange={updateField}
+          icon={<Phone className="h-4 w-4" />}
+          placeholder="03 9123 4567"
+          disabled={isSubmitting}
+        />
       </div>
       
       <div>
         <h4 className="text-lg font-medium text-gray-900 mb-4">Address</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
-            <input
+            <FormField
+              label="Street Address"
+              name="street"
               type="text"
-              value={formData.contact.address.street}
-              onChange={(e) => updateFormData('contact', 'address', {
-                ...formData.contact.address,
-                street: e.target.value
-              })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.street}
+              onChange={updateField}
+              error={getFieldError('street')}
               required
+              icon={<MapPin className="h-4 w-4" />}
+              disabled={isSubmitting}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Suburb *</label>
-            <input
+            <FormField
+              label="Suburb"
+              name="suburb"
               type="text"
-              value={formData.contact.address.suburb}
-              onChange={(e) => updateFormData('contact', 'address', {
-                ...formData.contact.address,
-                suburb: e.target.value
-              })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.suburb}
+              onChange={updateField}
+              error={getFieldError('suburb')}
               required
+              disabled={isSubmitting}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
-            <select
-              value={formData.contact.address.state}
-              onChange={(e) => updateFormData('contact', 'address', {
-                ...formData.contact.address,
-                state: e.target.value
-              })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+            <FormField
+              label="State"
+              name="state"
+              type="select"
+              value={formData.state}
+              onChange={updateField}
+              error={getFieldError('state')}
               required
-            >
-              <option value="">Select state</option>
-              <option value="NSW">NSW</option>
-              <option value="VIC">VIC</option>
-              <option value="QLD">QLD</option>
-              <option value="SA">SA</option>
-              <option value="WA">WA</option>
-              <option value="TAS">TAS</option>
-              <option value="NT">NT</option>
-              <option value="ACT">ACT</option>
-            </select>
+              options={[
+                { value: 'NSW', label: 'NSW' },
+                { value: 'VIC', label: 'VIC' },
+                { value: 'QLD', label: 'QLD' },
+                { value: 'SA', label: 'SA' },
+                { value: 'WA', label: 'WA' },
+                { value: 'TAS', label: 'TAS' },
+                { value: 'NT', label: 'NT' },
+                { value: 'ACT', label: 'ACT' }
+              ]}
+              disabled={isSubmitting}
+            />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Postcode *</label>
-            <input
+            <FormField
+              label="Postcode"
+              name="postcode"
               type="text"
-              value={formData.contact.address.postcode}
-              onChange={(e) => updateFormData('contact', 'address', {
-                ...formData.contact.address,
-                postcode: e.target.value
-              })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.postcode}
+              onChange={updateField}
+              error={getFieldError('postcode')}
               required
+              placeholder="3000"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -347,17 +344,17 @@ export function AddPatient() {
   const isStepValid = (step: number) => {
     switch (step) {
       case 1:
-        return formData.personal.firstName && formData.personal.lastName && formData.personal.dateOfBirth;
+        return formData.firstName && formData.lastName && formData.dateOfBirth;
       case 2:
-        return formData.contact.email && formData.contact.mobilePhone && 
-               formData.contact.address.street && formData.contact.address.suburb &&
-               formData.contact.address.state && formData.contact.address.postcode;
+        return formData.email && formData.mobilePhone && 
+               formData.street && formData.suburb &&
+               formData.state && formData.postcode;
       case 3:
         return true; // Healthcare cards are optional
       case 4:
         return true; // Medical information is optional
       case 5:
-        return formData.emergency.name && formData.emergency.relationship && formData.emergency.phone;
+        return formData.name && formData.relationship && formData.emergencyPhone;
       default:
         return false;
     }
@@ -428,56 +425,59 @@ export function AddPatient() {
           {currentStep === 5 && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Name *</label>
-                  <input
-                    type="text"
-                    value={formData.emergency.name}
-                    onChange={(e) => updateFormData('emergency', 'name', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  />
-                </div>
+                <FormField
+                  label="Contact Name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={updateField}
+                  error={getFieldError('name')}
+                  required
+                  disabled={isSubmitting}
+                />
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Relationship *</label>
-                  <select
-                    value={formData.emergency.relationship}
-                    onChange={(e) => updateFormData('emergency', 'relationship', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  >
-                    <option value="">Select relationship</option>
-                    <option value="Spouse">Spouse</option>
-                    <option value="Partner">Partner</option>
-                    <option value="Parent">Parent</option>
-                    <option value="Child">Child</option>
-                    <option value="Sibling">Sibling</option>
-                    <option value="Friend">Friend</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+                <FormField
+                  label="Relationship"
+                  name="relationship"
+                  type="select"
+                  value={formData.relationship}
+                  onChange={updateField}
+                  error={getFieldError('relationship')}
+                  required
+                  options={[
+                    { value: 'Spouse', label: 'Spouse' },
+                    { value: 'Partner', label: 'Partner' },
+                    { value: 'Parent', label: 'Parent' },
+                    { value: 'Child', label: 'Child' },
+                    { value: 'Sibling', label: 'Sibling' },
+                    { value: 'Friend', label: 'Friend' },
+                    { value: 'Other', label: 'Other' }
+                  ]}
+                  disabled={isSubmitting}
+                />
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                  <input
-                    type="tel"
-                    value={formData.emergency.phone}
-                    onChange={(e) => updateFormData('emergency', 'phone', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  />
-                </div>
+                <FormField
+                  label="Phone Number"
+                  name="emergencyPhone"
+                  type="tel"
+                  value={formData.emergencyPhone}
+                  onChange={updateField}
+                  error={getFieldError('emergencyPhone')}
+                  required
+                  icon={<Phone className="h-4 w-4" />}
+                  placeholder="0412 345 678"
+                  disabled={isSubmitting}
+                />
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={formData.emergency.email}
-                    onChange={(e) => updateFormData('emergency', 'email', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
+                <FormField
+                  label="Email"
+                  name="emergencyEmail"
+                  type="email"
+                  value={formData.emergencyEmail}
+                  onChange={updateField}
+                  icon={<Mail className="h-4 w-4" />}
+                  disabled={isSubmitting}
+                />
               </div>
             </div>
           )}
@@ -489,6 +489,7 @@ export function AddPatient() {
             onClick={handlePrevious}
             disabled={currentStep === 1}
             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
           >
             Previous
           </button>
@@ -496,29 +497,23 @@ export function AddPatient() {
           {currentStep < steps.length ? (
             <button
               onClick={handleNext}
+              type="button"
               disabled={!isStepValid(currentStep)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={loading || !isStepValid(currentStep)}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            <LoadingButton
+              onClick={onSubmit}
+              loading={isSubmitting}
+              disabled={!isStepValid(currentStep)}
+              variant="success"
+              icon={<Save className="h-4 w-4" />}
+              loadingText="Creating Patient..."
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  <span>Creating Patient...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Create Patient</span>
-                </>
-              )}
-            </button>
+              Create Patient
+            </LoadingButton>
           )}
         </div>
       </div>

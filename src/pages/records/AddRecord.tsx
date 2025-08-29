@@ -1,18 +1,40 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Save, X, Upload, Calendar, User, Stethoscope } from 'lucide-react';
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { FormField } from '../../components/FormField';
+import { LoadingButton } from '../../components/LoadingButton';
+import { useAppStore } from '../../stores/appStore';
 
 export function AddRecord() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    recordType: '',
-    title: '',
-    description: '',
-    date: new Date().toISOString().split('T')[0],
-    provider: '',
-    attachments: [] as File[]
-  });
-  const [loading, setLoading] = useState(false);
+  const { addNotification } = useAppStore();
+  
+  const {
+    data: formData,
+    errors,
+    updateField,
+    validateAll,
+    handleSubmit,
+    isSubmitting,
+    getFieldError
+  } = useFormValidation(
+    {
+      recordType: '',
+      title: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      provider: '',
+      attachments: [] as File[]
+    },
+    {
+      recordType: { required: true },
+      title: { required: true, minLength: 3, maxLength: 100 },
+      description: { required: true, minLength: 10, maxLength: 1000 },
+      date: { required: true, date: true },
+      provider: { minLength: 2, maxLength: 100 }
+    }
+  );
 
   const recordTypes = [
     { value: 'consultation', label: 'Consultation Notes', icon: <Stethoscope className="h-4 w-4" /> },
@@ -23,31 +45,66 @@ export function AddRecord() {
     { value: 'other', label: 'Other', icon: <FileText className="h-4 w-4" /> }
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     
-    try {
-      // In production, this would save to Supabase
-      console.log('Saving record:', formData);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      navigate('/records');
-    } catch (error) {
-      console.error('Error saving record:', error);
-    } finally {
-      setLoading(false);
-    }
+    await handleSubmit(
+      async (data) => {
+        // In production, this would save to Supabase
+        console.log('Saving record:', data);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      },
+      () => {
+        addNotification({
+          type: 'success',
+          title: 'Record Saved',
+          message: 'Your health record has been saved successfully.'
+        });
+        navigate('/records');
+      },
+      (error) => {
+        addNotification({
+          type: 'error',
+          title: 'Save Failed',
+          message: 'Failed to save health record. Please try again.'
+        });
+      }
+    );
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, ...Array.from(e.target.files!)]
-      }));
+      const newFiles = Array.from(e.target.files);
+      updateField('attachments', [...formData.attachments, ...newFiles]);
+      
+      addNotification({
+        type: 'success',
+        title: 'Files Added',
+        message: `${newFiles.length} file(s) added to your record.`
+      });
     }
   };
 
+  const handleRemoveFile = (index: number) => {
+    const newAttachments = formData.attachments.filter((_, i) => i !== index);
+    updateField('attachments', newAttachments);
+    
+    addNotification({
+      type: 'info',
+      title: 'File Removed',
+      message: 'File has been removed from your record.'
+    });
+  };
+
+  const handleRecordTypeSelect = (type: string) => {
+    updateField('recordType', type);
+    
+    addNotification({
+      type: 'info',
+      title: 'Record Type Selected',
+      message: `Selected ${recordTypes.find(t => t.value === type)?.label} record type.`
+    });
+  };
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -57,8 +114,8 @@ export function AddRecord() {
             <h1 className="text-2xl font-bold text-gray-900">Add Health Record</h1>
           </div>
           <button
-            onClick={() => navigate('/records')}
-            className="text-gray-600 hover:text-gray-800 flex items-center space-x-1"
+            } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isSubmitting && handleRecordTypeSelect(type.value)}
           >
             <X className="h-4 w-4" />
             <span>Cancel</span>
@@ -89,71 +146,57 @@ export function AddRecord() {
               ))}
             </div>
           </div>
+        <form onSubmit={onSubmit} className="space-y-6">
+          <FormField
+            label="Title"
+            name="title"
+            type="text"
+            value={formData.title}
+            onChange={updateField}
+            error={getFieldError('title')}
+            required
+            placeholder="Enter a title for this record"
+            disabled={isSubmitting}
+          />
 
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter a title for this record"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={4}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Describe the health record details..."
-              required
-            />
-          </div>
+          <FormField
+            label="Description"
+            name="description"
+            type="textarea"
+            value={formData.description}
+            onChange={updateField}
+            error={getFieldError('description')}
+            required
+            placeholder="Describe the health record details..."
+            rows={4}
+            disabled={isSubmitting}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-                Date *
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="date"
-                  id="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              </div>
-            </div>
+            <FormField
+              label="Date"
+              name="date"
+              type="date"
+              value={formData.date}
+              onChange={updateField}
+              error={getFieldError('date')}
+              required
+              icon={<Calendar className="h-4 w-4" />}
+              max={new Date().toISOString().split('T')[0]}
+              disabled={isSubmitting}
+            />
 
-            <div>
-              <label htmlFor="provider" className="block text-sm font-medium text-gray-700 mb-2">
-                Healthcare Provider
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  id="provider"
-                  value={formData.provider}
-                  onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
-                  className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Enter provider name"
-                />
-              </div>
-            </div>
+            <FormField
+              label="Healthcare Provider"
+              name="provider"
+              type="text"
+              value={formData.provider}
+              onChange={updateField}
+              error={getFieldError('provider')}
+              placeholder="Enter provider name"
+              icon={<User className="h-4 w-4" />}
+              disabled={isSubmitting}
+            />
           </div>
 
           <div>
@@ -167,13 +210,14 @@ export function AddRecord() {
                 type="file"
                 multiple
                 onChange={handleFileUpload}
+                disabled={isSubmitting}
                 className="hidden"
                 id="file-upload"
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
               />
               <label
                 htmlFor="file-upload"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 cursor-pointer inline-block"
+                className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 cursor-pointer inline-block ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Choose Files
               </label>
@@ -189,10 +233,8 @@ export function AddRecord() {
                     <span className="text-sm text-gray-700">{file.name}</span>
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({
-                        ...prev,
-                        attachments: prev.attachments.filter((_, i) => i !== index)
-                      }))}
+                      onClick={() => handleRemoveFile(index)}
+                      disabled={isSubmitting}
                       className="text-red-600 hover:text-red-700"
                     >
                       <X className="h-4 w-4" />
@@ -208,26 +250,19 @@ export function AddRecord() {
               type="button"
               onClick={() => navigate('/records')}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
-            <button
+            <LoadingButton
               type="submit"
-              disabled={loading || !formData.recordType || !formData.title || !formData.description}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              loading={isSubmitting}
+              disabled={!formData.recordType || !formData.title || !formData.description}
+              icon={<Save className="h-4 w-4" />}
+              loadingText="Saving..."
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Save Record</span>
-                </>
-              )}
-            </button>
+              Save Record
+            </LoadingButton>
           </div>
         </form>
       </div>

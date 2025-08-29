@@ -1,45 +1,50 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Save, X, User, Calendar, Stethoscope, Mic, MicOff } from 'lucide-react';
-
-interface ClinicalRecordForm {
-  patient_id: string;
-  patient_name: string;
-  record_type: 'consultation' | 'diagnosis' | 'treatment' | 'procedure' | 'referral';
-  title: string;
-  chief_complaint: string;
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-  diagnosis_codes: string[];
-  medications: string[];
-  follow_up: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  is_confidential: boolean;
-}
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { FormField } from '../../components/FormField';
+import { LoadingButton } from '../../components/LoadingButton';
+import { useAppStore } from '../../stores/appStore';
 
 export function CreateRecord() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<ClinicalRecordForm>({
-    patient_id: '',
-    patient_name: '',
-    record_type: 'consultation',
-    title: '',
-    chief_complaint: '',
-    subjective: '',
-    objective: '',
-    assessment: '',
-    plan: '',
-    diagnosis_codes: [],
-    medications: [],
-    follow_up: '',
-    priority: 'normal',
-    is_confidential: false
-  });
-  const [loading, setLoading] = useState(false);
+  const { addNotification } = useAppStore();
   const [isRecording, setIsRecording] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  
+  const {
+    data: formData,
+    errors,
+    updateField,
+    validateAll,
+    handleSubmit,
+    isSubmitting,
+    getFieldError
+  } = useFormValidation(
+    {
+      patient_id: '',
+      patient_name: '',
+      record_type: 'consultation',
+      title: '',
+      chief_complaint: '',
+      subjective: '',
+      objective: '',
+      assessment: '',
+      plan: '',
+      follow_up: '',
+      priority: 'normal',
+      is_confidential: false
+    },
+    {
+      patient_name: { required: true, minLength: 2, maxLength: 100 },
+      title: { required: true, minLength: 3, maxLength: 200 },
+      chief_complaint: { minLength: 5, maxLength: 500 },
+      subjective: { minLength: 10, maxLength: 2000 },
+      objective: { minLength: 10, maxLength: 2000 },
+      assessment: { minLength: 5, maxLength: 1000 },
+      plan: { minLength: 5, maxLength: 1000 }
+    }
+  );
 
   const templates = [
     { id: 'general', name: 'General Consultation', type: 'consultation' },
@@ -56,31 +61,57 @@ export function CreateRecord() {
     { value: 'referral', label: 'Referral' }
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     
-    try {
-      // In production, this would save to Supabase
-      console.log('Creating clinical record:', formData);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      navigate('/clinical-records');
-    } catch (error) {
-      console.error('Error creating record:', error);
-    } finally {
-      setLoading(false);
-    }
+    await handleSubmit(
+      async (data) => {
+        // In production, this would save to Supabase
+        console.log('Creating clinical record:', data);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      },
+      () => {
+        addNotification({
+          type: 'success',
+          title: 'Record Created',
+          message: 'Clinical record has been created successfully.'
+        });
+        navigate('/clinical-records');
+      },
+      (error) => {
+        addNotification({
+          type: 'error',
+          title: 'Creation Failed',
+          message: 'Failed to create clinical record. Please try again.'
+        });
+      }
+    );
   };
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
-    // In production, this would load template content
-    console.log('Loading template:', templateId);
+    addNotification({
+      type: 'info',
+      title: 'Template Selected',
+      message: `Loading ${templates.find(t => t.id === templateId)?.name} template.`
+    });
   };
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
-    // In production, this would start/stop voice recording
+    addNotification({
+      type: 'info',
+      title: isRecording ? 'Recording Stopped' : 'Recording Started',
+      message: isRecording ? 'Voice recording has been stopped.' : 'Voice recording has started.'
+    });
+  };
+
+  const handleSaveDraft = async () => {
+    addNotification({
+      type: 'info',
+      title: 'Draft Saved',
+      message: 'Clinical record has been saved as draft.'
+    });
   };
 
   return (
@@ -112,7 +143,7 @@ export function CreateRecord() {
                   selectedTemplate === template.id
                     ? 'border-indigo-500 bg-indigo-50'
                     : 'border-gray-200 hover:border-gray-300'
-                }`}
+                } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div className="text-sm font-medium text-gray-900">{template.name}</div>
                 <div className="text-xs text-gray-500 capitalize">{template.type}</div>
@@ -121,63 +152,59 @@ export function CreateRecord() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={onSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Patient *</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  value={formData.patient_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, patient_name: e.target.value }))}
-                  placeholder="Search and select patient..."
-                  className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              </div>
-            </div>
+            <FormField
+              label="Patient"
+              name="patient_name"
+              type="text"
+              value={formData.patient_name}
+              onChange={updateField}
+              error={getFieldError('patient_name')}
+              required
+              placeholder="Search and select patient..."
+              icon={<User className="h-4 w-4" />}
+              disabled={isSubmitting}
+            />
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Record Type *</label>
-              <select
-                value={formData.record_type}
-                onChange={(e) => setFormData(prev => ({ ...prev, record_type: e.target.value as any }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              >
-                {recordTypes.map((type) => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-            </div>
+            <FormField
+              label="Record Type"
+              name="record_type"
+              type="select"
+              value={formData.record_type}
+              onChange={updateField}
+              required
+              options={recordTypes.map(type => ({ value: type.value, label: type.label }))}
+              disabled={isSubmitting}
+            />
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter record title"
-                required
-              />
-            </div>
+            <FormField
+              label="Title"
+              name="title"
+              type="text"
+              value={formData.title}
+              onChange={updateField}
+              error={getFieldError('title')}
+              required
+              placeholder="Enter record title"
+              disabled={isSubmitting}
+            />
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as any }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
+            <FormField
+              label="Priority"
+              name="priority"
+              type="select"
+              value={formData.priority}
+              onChange={updateField}
+              options={[
+                { value: 'low', label: 'Low' },
+                { value: 'normal', label: 'Normal' },
+                { value: 'high', label: 'High' },
+                { value: 'urgent', label: 'Urgent' }
+              ]}
+              disabled={isSubmitting}
+            />
           </div>
 
           {/* SOAP Notes */}
@@ -191,88 +218,94 @@ export function CreateRecord() {
                   isRecording 
                     ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isSubmitting}
               >
                 {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 <span>{isRecording ? 'Stop Recording' : 'Voice Dictation'}</span>
               </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Chief Complaint</label>
-              <textarea
-                value={formData.chief_complaint}
-                onChange={(e) => setFormData(prev => ({ ...prev, chief_complaint: e.target.value }))}
-                rows={2}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Patient's main concern or reason for visit..."
-              />
-            </div>
+            <FormField
+              label="Chief Complaint"
+              name="chief_complaint"
+              type="textarea"
+              value={formData.chief_complaint}
+              onChange={updateField}
+              error={getFieldError('chief_complaint')}
+              rows={2}
+              placeholder="Patient's main concern or reason for visit..."
+              disabled={isSubmitting}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Subjective</label>
-              <textarea
-                value={formData.subjective}
-                onChange={(e) => setFormData(prev => ({ ...prev, subjective: e.target.value }))}
-                rows={3}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Patient's description of symptoms, history of present illness..."
-              />
-            </div>
+            <FormField
+              label="Subjective"
+              name="subjective"
+              type="textarea"
+              value={formData.subjective}
+              onChange={updateField}
+              error={getFieldError('subjective')}
+              rows={3}
+              placeholder="Patient's description of symptoms, history of present illness..."
+              disabled={isSubmitting}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Objective</label>
-              <textarea
-                value={formData.objective}
-                onChange={(e) => setFormData(prev => ({ ...prev, objective: e.target.value }))}
-                rows={3}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Physical examination findings, vital signs, test results..."
-              />
-            </div>
+            <FormField
+              label="Objective"
+              name="objective"
+              type="textarea"
+              value={formData.objective}
+              onChange={updateField}
+              error={getFieldError('objective')}
+              rows={3}
+              placeholder="Physical examination findings, vital signs, test results..."
+              disabled={isSubmitting}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Assessment</label>
-              <textarea
-                value={formData.assessment}
-                onChange={(e) => setFormData(prev => ({ ...prev, assessment: e.target.value }))}
-                rows={2}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Clinical impression, diagnosis..."
-              />
-            </div>
+            <FormField
+              label="Assessment"
+              name="assessment"
+              type="textarea"
+              value={formData.assessment}
+              onChange={updateField}
+              error={getFieldError('assessment')}
+              rows={2}
+              placeholder="Clinical impression, diagnosis..."
+              disabled={isSubmitting}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Plan</label>
-              <textarea
-                value={formData.plan}
-                onChange={(e) => setFormData(prev => ({ ...prev, plan: e.target.value }))}
-                rows={3}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Treatment plan, medications, follow-up instructions..."
-              />
-            </div>
+            <FormField
+              label="Plan"
+              name="plan"
+              type="textarea"
+              value={formData.plan}
+              onChange={updateField}
+              error={getFieldError('plan')}
+              rows={3}
+              placeholder="Treatment plan, medications, follow-up instructions..."
+              disabled={isSubmitting}
+            />
           </div>
 
           {/* Additional Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Follow-up</label>
-              <input
-                type="text"
-                value={formData.follow_up}
-                onChange={(e) => setFormData(prev => ({ ...prev, follow_up: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="e.g., 2 weeks, 1 month, PRN"
-              />
-            </div>
+            <FormField
+              label="Follow-up"
+              name="follow_up"
+              type="text"
+              value={formData.follow_up}
+              onChange={updateField}
+              placeholder="e.g., 2 weeks, 1 month, PRN"
+              disabled={isSubmitting}
+            />
             
             <div className="flex items-center">
               <input
                 type="checkbox"
                 id="confidential"
                 checked={formData.is_confidential}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_confidential: e.target.checked }))}
+                onChange={(e) => updateField('is_confidential', e.target.checked)}
+                disabled={isSubmitting}
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
               />
               <label htmlFor="confidential" className="ml-2 text-sm text-gray-900">
@@ -286,32 +319,27 @@ export function CreateRecord() {
               type="button"
               onClick={() => navigate('/clinical-records')}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="button"
+              onClick={handleSaveDraft}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              disabled={isSubmitting}
             >
               Save as Draft
             </button>
-            <button
+            <LoadingButton
               type="submit"
-              disabled={loading || !formData.patient_name || !formData.title}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              loading={isSubmitting}
+              disabled={!formData.patient_name || !formData.title}
+              icon={<Save className="h-4 w-4" />}
+              loadingText="Creating..."
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  <span>Creating...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Create Record</span>
-                </>
-              )}
-            </button>
+              Create Record
+            </LoadingButton>
           </div>
         </form>
       </div>
