@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Pill, Plus, Search, Filter, Download, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 
 interface Prescription {
@@ -19,10 +20,27 @@ interface Prescription {
 }
 
 export function Prescriptions() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showRequestForm, setShowRequestForm] = useState(false);
+  const [currentView, setCurrentView] = useState('overview');
+
+  // Set view based on URL path
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/active')) {
+      setCurrentView('active');
+    } else if (path.includes('/history')) {
+      setCurrentView('history');
+    } else if (path.includes('/request')) {
+      setCurrentView('request');
+    } else {
+      setCurrentView('overview');
+    }
+  }, [location.pathname]);
 
   // Mock data for preview
   useEffect(() => {
@@ -145,13 +163,41 @@ export function Prescriptions() {
             <Pill className="h-6 w-6 text-indigo-600" />
             <h1 className="text-2xl font-bold text-gray-900">Medications & Prescriptions</h1>
           </div>
-          <button
-            onClick={() => setShowRequestForm(true)}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Request Prescription</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => navigate('/medications')}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentView === 'overview' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => navigate('/medications/active')}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentView === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => navigate('/medications/history')}
+                className={`px-3 py-1 rounded text-sm font-medium ${
+                  currentView === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                History
+              </button>
+            </div>
+            <button
+              onClick={() => navigate('/medications/request')}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Request Prescription</span>
+            </button>
+          </div>
         </div>
 
         {/* Search and Filter */}
@@ -184,8 +230,20 @@ export function Prescriptions() {
       </div>
 
       {/* Prescriptions List */}
-      <div className="space-y-4">
-        {filteredPrescriptions.map((prescription) => (
+      {currentView === 'request' ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Request Prescription</h2>
+          <p className="text-gray-500">Prescription request form will be available here.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredPrescriptions
+            .filter(prescription => {
+              if (currentView === 'active') return ['active', 'dispensed'].includes(prescription.status);
+              if (currentView === 'history') return ['expired', 'cancelled'].includes(prescription.status);
+              return true;
+            })
+            .map((prescription) => (
           <div key={prescription.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start space-x-4">
@@ -279,26 +337,35 @@ export function Prescriptions() {
               )}
             </div>
           </div>
-        ))}
+          ))}
 
-        {filteredPrescriptions.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <Pill className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No prescriptions found</h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm || filterStatus !== 'all' 
-                ? 'Try adjusting your search or filter criteria.'
-                : 'You don\'t have any prescriptions yet.'}
-            </p>
-            <button
-              onClick={() => setShowRequestForm(true)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-            >
-              Request Prescription
-            </button>
-          </div>
-        )}
-      </div>
+          {filteredPrescriptions.filter(prescription => {
+            if (currentView === 'active') return ['active', 'dispensed'].includes(prescription.status);
+            if (currentView === 'history') return ['expired', 'cancelled'].includes(prescription.status);
+            return true;
+          }).length === 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+              <Pill className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No prescriptions found</h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm || filterStatus !== 'all' 
+                  ? 'Try adjusting your search or filter criteria.'
+                  : currentView === 'active' 
+                    ? 'You don\'t have any active prescriptions.'
+                    : currentView === 'history'
+                      ? 'No prescription history available.'
+                      : 'You don\'t have any prescriptions yet.'}
+              </p>
+              <button
+                onClick={() => navigate('/medications/request')}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+              >
+                Request Prescription
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

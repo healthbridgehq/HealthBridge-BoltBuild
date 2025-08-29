@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Activity, Menu, X, Bell, Search } from 'lucide-react';
 import { Navigation } from './Navigation';
+import { useAuthStore } from '../stores/authStore';
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const { signOut } = useAuthStore();
   
   // For preview mode
   const previewMode = true;
@@ -14,6 +17,15 @@ export function Layout() {
   if (!currentProfile) {
     return null;
   }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,6 +48,14 @@ export function Layout() {
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <Navigation userRole={currentProfile.role as 'patient' | 'provider'} />
           </div>
+          <div className="border-t border-gray-200 p-4">
+            <button
+              onClick={handleSignOut}
+              className="w-full text-left text-sm text-gray-600 hover:text-gray-900"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
 
@@ -48,6 +68,14 @@ export function Layout() {
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <Navigation userRole={currentProfile.role as 'patient' | 'provider'} />
+          </div>
+          <div className="border-t border-gray-200 p-4">
+            <button
+              onClick={handleSignOut}
+              className="w-full text-left text-sm text-gray-600 hover:text-gray-900"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </div>
@@ -79,7 +107,10 @@ export function Layout() {
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
               </button>
               
-              <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => navigate('/profile')}
+                className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+              >
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900">{currentProfile.full_name}</p>
                   <p className="text-xs text-gray-500 capitalize">{currentProfile.role}</p>
@@ -89,7 +120,7 @@ export function Layout() {
                     {currentProfile.full_name.split(' ').map((n: string) => n[0]).join('')}
                   </span>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </div>

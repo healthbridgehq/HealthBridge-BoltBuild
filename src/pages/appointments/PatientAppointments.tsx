@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calendar, 
   Clock, 
@@ -53,6 +54,8 @@ interface Provider {
 }
 
 export function PatientAppointments() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentView, setCurrentView] = useState<'overview' | 'book' | 'history'>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -60,6 +63,18 @@ export function PatientAppointments() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+
+  // Set view based on URL path
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/book')) {
+      setCurrentView('book');
+    } else if (path.includes('/history')) {
+      setCurrentView('history');
+    } else {
+      setCurrentView('overview');
+    }
+  }, [location.pathname]);
 
   // Mock data
   useEffect(() => {
@@ -492,7 +507,7 @@ export function PatientAppointments() {
             <p className="text-gray-600 mt-1">Find and book with healthcare providers</p>
           </div>
           <button
-            onClick={() => setCurrentView('overview')}
+            onClick={() => navigate('/appointments')}
             className="text-gray-600 hover:text-gray-800"
           >
             ← Back to Overview
@@ -634,7 +649,7 @@ export function PatientAppointments() {
               Overview
             </button>
             <button
-              onClick={() => setCurrentView('book')}
+              onClick={() => navigate('/appointments/book')}
               className={`px-3 py-1 rounded text-sm font-medium ${
                 currentView === 'book' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
@@ -642,7 +657,7 @@ export function PatientAppointments() {
               Book New
             </button>
             <button
-              onClick={() => setCurrentView('history')}
+              onClick={() => navigate('/appointments/history')}
               className={`px-3 py-1 rounded text-sm font-medium ${
                 currentView === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}

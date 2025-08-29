@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Activity } from 'lucide-react';
 import { useAuthStore } from './stores/authStore';
 import { Layout } from './components/Layout';
+import { AuthLayout } from './components/AuthLayout';
+import { LoginForm } from './components/LoginForm';
+import { RegisterForm } from './components/RegisterForm';
 import { PatientDashboard } from './components/PatientDashboard';
 import { PractitionerDashboard } from './components/PractitionerDashboard';
 import { HealthRecords } from './pages/records/HealthRecords';
@@ -20,6 +23,8 @@ import { ClinicalRecords } from './pages/clinical/ClinicalRecords';
 import { TasksWorkflow } from './pages/tasks/TasksWorkflow';
 import { Administration } from './pages/administration/Administration';
 import { BillingPayments } from './pages/billing/BillingPayments';
+import { HealthGoals } from './pages/health-goals/HealthGoals';
+import { NotFound } from './components/NotFound';
 
 function App() {
   const { user, profile, loading, loadUser } = useAuthStore();
@@ -51,6 +56,11 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Auth Routes */}
+        <Route path="/login" element={<AuthLayout><LoginForm /></AuthLayout>} />
+        <Route path="/register" element={<AuthLayout><RegisterForm /></AuthLayout>} />
+        
+        {/* Protected Routes */}
         <Route path="/" element={<Layout />}>
           <Route index element={
             previewMode ? (
@@ -70,8 +80,8 @@ function App() {
           
           {/* Patient Routes */}
           <Route path="/records" element={<HealthRecords />} />
-          <Route path="/records/add" element={<div>Add Health Record</div>} />
-          <Route path="/records/share" element={<div>Share Health Records</div>} />
+          <Route path="/records/add" element={<HealthRecords />} />
+          <Route path="/records/share" element={<HealthRecords />} />
           
           <Route path="/appointments" element={
             previewMode && mockPractitionerProfile.role === 'provider' ? (
@@ -80,73 +90,52 @@ function App() {
               <PatientAppointments />
             )
           } />
+          <Route path="/appointments/book" element={<AppointmentSchedule />} />
           <Route path="/appointments/schedule" element={<AppointmentSchedule />} />
-          <Route path="/appointments/upcoming" element={<div>Upcoming Appointments</div>} />
-          <Route path="/appointments/history" element={<div>Appointment History</div>} />
+          <Route path="/appointments/history" element={<PatientAppointments />} />
+          <Route path="/appointments/waiting-room" element={<PractitionerAppointments />} />
           
           <Route path="/medications" element={<Prescriptions />} />
-          <Route path="/medications/current" element={<div>Current Medications</div>} />
-          <Route path="/medications/history" element={<div>Medication History</div>} />
-          <Route path="/medications/requests" element={<div>Prescription Requests</div>} />
+          <Route path="/medications/active" element={<Prescriptions />} />
+          <Route path="/medications/history" element={<Prescriptions />} />
+          <Route path="/medications/request" element={<Prescriptions />} />
           
-          <Route path="/health-goals" element={<div>Health Goals</div>} />
+          <Route path="/health-goals" element={<HealthGoals />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/profile" element={<UserProfile />} />
           
           {/* Provider Routes */}
           <Route path="/patients" element={<PatientManagement />} />
-          <Route path="/patients/add" element={<div>Add Patient</div>} />
-          <Route path="/patients/search" element={<div>Search Patients</div>} />
-          
-          <Route path="/appointments/calendar" element={<div>Appointment Calendar</div>} />
-          <Route path="/appointments/today" element={<div>Today's Schedule</div>} />
-          <Route path="/appointments/waiting" element={<div>Waiting Room</div>} />
+          <Route path="/patients/add" element={<PatientManagement />} />
+          <Route path="/patients/search" element={<PatientManagement />} />
           
           <Route path="/clinical-records" element={<ClinicalRecords />} />
-          <Route path="/clinical-records/create" element={<div>Create Clinical Record</div>} />
-          <Route path="/clinical-records/review" element={<div>Review Records</div>} />
-          <Route path="/clinical-records/templates" element={<div>Clinical Templates</div>} />
+          <Route path="/clinical-records/create" element={<ClinicalRecords />} />
+          <Route path="/clinical-records/templates" element={<ClinicalRecords />} />
           
-          <Route path="/prescriptions" element={<div>Prescription Management</div>} />
-          <Route path="/prescriptions/create" element={<div>Create Prescription</div>} />
-          <Route path="/prescriptions/history" element={<div>Prescription History</div>} />
-          <Route path="/prescriptions/interactions" element={<div>Drug Interactions</div>} />
+          <Route path="/prescriptions/create" element={<Prescriptions />} />
+          <Route path="/prescriptions/history" element={<Prescriptions />} />
           
           <Route path="/tasks" element={<TasksWorkflow />} />
           
           <Route path="/analytics" element={<AnalyticsOverview />} />
-          <Route path="/analytics/practice" element={<div>Practice Analytics</div>} />
-          <Route path="/analytics/clinical" element={<div>Clinical Outcomes</div>} />
-          <Route path="/analytics/financial" element={<div>Financial Reports</div>} />
+          <Route path="/analytics/practice" element={<AnalyticsOverview />} />
+          <Route path="/analytics/clinical" element={<AnalyticsOverview />} />
+          <Route path="/analytics/financial" element={<AnalyticsOverview />} />
           
           <Route path="/admin" element={<Administration />} />
-          <Route path="/admin/staff" element={<div>Staff Management</div>} />
-          <Route path="/admin/settings" element={<div>Practice Settings</div>} />
-          <Route path="/admin/integrations" element={<div>System Integrations</div>} />
+          <Route path="/admin/users" element={<Administration />} />
+          <Route path="/admin/system" element={<Administration />} />
+          <Route path="/admin/audit" element={<Administration />} />
           
-          {/* Phase 2 Routes - Enhanced Features */}
+          {/* Shared Routes */}
           <Route path="/telehealth" element={<TelehealthPlatform />} />
           <Route path="/billing" element={<BillingPayments />} />
           <Route path="/integrations" element={<IntegrationHub />} />
+          
+          {/* Catch all route */}
+          <Route path="*" element={<NotFound />} />
         </Route>
-        
-        {/* Auth Routes */}
-        <Route path="/login" element={
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-              <h2 className="text-2xl font-bold text-center mb-6">Login to HealthBridge</h2>
-              <p className="text-gray-600 text-center">Authentication system will be implemented here</p>
-            </div>
-          </div>
-        } />
-        <Route path="/register" element={
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-              <h2 className="text-2xl font-bold text-center mb-6">Register for HealthBridge</h2>
-              <p className="text-gray-600 text-center">Registration system will be implemented here</p>
-            </div>
-          </div>
-        } />
       </Routes>
     </Router>
   );

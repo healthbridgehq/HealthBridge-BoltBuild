@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calendar, 
   Clock, 
@@ -54,6 +55,8 @@ interface WaitingPatient {
 }
 
 export function PractitionerAppointments() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentView, setCurrentView] = useState<'day' | 'week' | 'month' | 'waiting'>('day');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -62,6 +65,18 @@ export function PractitionerAppointments() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Set view based on URL path
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/waiting-room')) {
+      setCurrentView('waiting');
+    } else if (path.includes('/schedule')) {
+      setCurrentView('day');
+    } else {
+      setCurrentView('day');
+    }
+  }, [location.pathname]);
 
   // Mock data for today's appointments
   useEffect(() => {
@@ -578,7 +593,7 @@ export function PractitionerAppointments() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setCurrentView('day')}
+                onClick={() => navigate('/appointments')}
                 className={`px-3 py-1 rounded text-sm font-medium ${
                   currentView === 'day' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
                 }`}
@@ -586,15 +601,15 @@ export function PractitionerAppointments() {
                 Day
               </button>
               <button
-                onClick={() => setCurrentView('week')}
+                onClick={() => navigate('/appointments/schedule')}
                 className={`px-3 py-1 rounded text-sm font-medium ${
                   currentView === 'week' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
                 }`}
               >
-                Week
+                Schedule
               </button>
               <button
-                onClick={() => setCurrentView('waiting')}
+                onClick={() => navigate('/appointments/waiting-room')}
                 className={`px-3 py-1 rounded text-sm font-medium ${
                   currentView === 'waiting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
                 }`}
@@ -633,9 +648,9 @@ export function PractitionerAppointments() {
       {/* Content based on current view */}
       {currentView === 'day' && renderDayView()}
       {currentView === 'waiting' && renderWaitingRoom()}
-      {currentView === 'week' && (
+      {currentView === 'schedule' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <p className="text-gray-500">Week view coming soon...</p>
+          <p className="text-gray-500">Schedule management view coming soon...</p>
         </div>
       )}
     </div>
