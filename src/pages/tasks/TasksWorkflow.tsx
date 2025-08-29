@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useModalStore } from '../../stores/modalStore';
+import { useAppStore } from '../../stores/appStore';
 import { 
   CheckSquare, 
   Plus, 
@@ -22,6 +24,8 @@ import {
   Pause,
   Square
 } from 'lucide-react';
+import { CreateTaskModal } from '../../components/modals/CreateTaskModal';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 interface Task {
   id: string;
@@ -52,6 +56,8 @@ interface WorkflowTemplate {
 }
 
 export function TasksWorkflow() {
+  const { addNotification } = useAppStore();
+  const { openModal, closeModal, modals, modalData, showConfirmDialog } = useModalStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -315,6 +321,29 @@ export function TasksWorkflow() {
     ));
   };
 
+  const handleCreateTask = () => {
+    openModal('createTask');
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    showConfirmDialog({
+      title: 'Delete Task',
+      message: `Are you sure you want to delete "${task?.title}"? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Task',
+      cancelText: 'Keep Task',
+      onConfirm: () => {
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+        addNotification({
+          type: 'success',
+          title: 'Task Deleted',
+          message: 'Task has been deleted successfully.'
+        });
+      }
+    });
+  };
+
   const isOverdue = (task: Task) => {
     if (task.status === 'completed' || task.status === 'cancelled') return false;
     const dueDateTime = new Date(`${task.due_date}T${task.due_time || '23:59'}:00`);
@@ -428,6 +457,13 @@ export function TasksWorkflow() {
                 <CheckCircle className="h-3 w-3" />
                 <span>Complete</span>
               </button>
+              <button 
+                onClick={() => handleDeleteTask(task.id)}
+                className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center space-x-1"
+              >
+                <XCircle className="h-3 w-3" />
+                <span>Delete</span>
+              </button>
             </>
           )}
           
@@ -463,7 +499,7 @@ export function TasksWorkflow() {
               <span>Workflows</span>
             </button>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleCreateTask}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2"
             >
               <Plus className="h-4 w-4" />
@@ -611,7 +647,7 @@ export function TasksWorkflow() {
                 : 'Create your first task to get started.'}
             </p>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleCreateTask}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
             >
               Create Task
@@ -619,6 +655,19 @@ export function TasksWorkflow() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <CreateTaskModal />
+      <ConfirmDialog
+        isOpen={modals.confirmDialog}
+        onClose={() => closeModal('confirmDialog')}
+        onConfirm={modalData.confirmDialog?.onConfirm || (() => {})}
+        title={modalData.confirmDialog?.title || ''}
+        message={modalData.confirmDialog?.message || ''}
+        type={modalData.confirmDialog?.type || 'warning'}
+        confirmText={modalData.confirmDialog?.confirmText}
+        cancelText={modalData.confirmDialog?.cancelText}
+      />
     </div>
   );
 }

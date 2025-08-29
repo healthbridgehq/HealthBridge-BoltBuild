@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
+import { useModalStore } from '../../stores/modalStore';
 import { 
   Calendar, 
   Clock, 
@@ -19,6 +20,9 @@ import {
   FileText,
   Bell
 } from 'lucide-react';
+import { CreateAppointmentModal } from '../../components/modals/CreateAppointmentModal';
+import { AppointmentDetailsModal } from '../../components/modals/AppointmentDetailsModal';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 interface Appointment {
   id: string;
@@ -58,6 +62,7 @@ export function PatientAppointments() {
   const navigate = useNavigate();
   const location = useLocation();
   const { addNotification, setLoading } = useAppStore();
+  const { openModal, closeModal, modals, setModalData, modalData, showConfirmDialog } = useModalStore();
   const [currentView, setCurrentView] = useState<'overview' | 'book' | 'history'>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -197,11 +202,6 @@ export function PatientAppointments() {
   }, []);
 
   const handleJoinVideo = (appointmentId: string) => {
-    addNotification({
-      type: 'info',
-      title: 'Joining Video Call',
-      message: 'Connecting to your telehealth appointment...'
-    });
     navigate('/telehealth');
   };
 
@@ -215,26 +215,31 @@ export function PatientAppointments() {
   };
 
   const handleCancel = (appointmentId: string) => {
-    if (confirm('Are you sure you want to cancel this appointment?')) {
-      setAppointments(prev => prev.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, status: 'cancelled' as const }
-          : apt
-      ));
-      addNotification({
-        type: 'success',
-        title: 'Appointment Cancelled',
-        message: 'Your appointment has been successfully cancelled.'
-      });
-    }
+    const appointment = appointments.find(a => a.id === appointmentId);
+    showConfirmDialog({
+      title: 'Cancel Appointment',
+      message: `Are you sure you want to cancel your appointment with ${appointment?.provider_name}?`,
+      type: 'warning',
+      confirmText: 'Yes, Cancel',
+      cancelText: 'Keep Appointment',
+      onConfirm: () => {
+        setAppointments(prev => prev.map(apt => 
+          apt.id === appointmentId 
+            ? { ...apt, status: 'cancelled' as const }
+            : apt
+        ));
+        addNotification({
+          type: 'success',
+          title: 'Appointment Cancelled',
+          message: 'Your appointment has been successfully cancelled.'
+        });
+      }
+    });
   };
 
   const handleViewDetails = (appointmentId: string) => {
-    addNotification({
-      type: 'info',
-      title: 'Appointment Details',
-      message: 'Opening detailed appointment information.'
-    });
+    setModalData('selectedAppointment', appointmentId);
+    openModal('appointmentDetails');
   };
 
   const handleBookWithProvider = (providerId: string) => {
@@ -517,7 +522,7 @@ export function PatientAppointments() {
                       {appointment.can_cancel && (
                         <button 
                           onClick={() => handleCancel(appointment.id)}
-                          className="text-red-600 hover:text-red-700 px-3 py-1 text-sm"
+                          className="border border-red-300 text-red-600 hover:bg-red-50 px-3 py-1 rounded text-sm"
                         >
                           Cancel
                         </button>
@@ -533,7 +538,7 @@ export function PatientAppointments() {
                         <span>Summary</span>
                       </button>
                       <button 
-                        onClick={() => navigate('/appointments/book')}
+                        onClick={() => openModal('createAppointment')}
                         className="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50"
                       >
                         Book Follow-up
@@ -556,7 +561,7 @@ export function PatientAppointments() {
                 : 'You don\'t have any appointments yet.'}
             </p>
             <button
-              onClick={() => setCurrentView('book')}
+              onClick={() => openModal('createAppointment')}
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
             >
               Book Your First Appointment
@@ -772,6 +777,20 @@ export function PatientAppointments() {
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <CreateAppointmentModal />
+      <AppointmentDetailsModal />
+      <ConfirmDialog
+        isOpen={modals.confirmDialog}
+        onClose={() => closeModal('confirmDialog')}
+        onConfirm={modalData.confirmDialog?.onConfirm || (() => {})}
+        title={modalData.confirmDialog?.title || ''}
+        message={modalData.confirmDialog?.message || ''}
+        type={modalData.confirmDialog?.type || 'warning'}
+        confirmText={modalData.confirmDialog?.confirmText}
+        cancelText={modalData.confirmDialog?.cancelText}
+      />
     </div>
   );
 }

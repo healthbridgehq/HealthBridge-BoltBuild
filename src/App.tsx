@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Activity } from 'lucide-react';
 import { useAuthStore } from './stores/authStore';
+import { useModalStore } from './stores/modalStore';
 import { Layout } from './components/Layout';
 import { AuthLayout } from './components/AuthLayout';
 import { LoginForm } from './components/LoginForm';
@@ -35,6 +36,7 @@ import { ClinicalTemplates } from './pages/clinical/ClinicalTemplates';
 
 function App() {
   const { user, profile, loading, loadUser } = useAuthStore();
+  const { closeAllModals } = useModalStore();
 
   // For preview purposes, show practitioner portal directly
   const previewMode = true;
@@ -47,6 +49,11 @@ function App() {
     if (!previewMode) {
       loadUser();
     }
+    
+    // Close all modals on route change
+    return () => {
+      closeAllModals();
+    };
   }, [loadUser, previewMode]);
 
   // Don't show loading spinner in preview mode
