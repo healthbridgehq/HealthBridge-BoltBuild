@@ -193,6 +193,7 @@ export function Navigation({ userRole, isCollapsed = false }: NavigationProps) {
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedItems.includes(item.id);
     const active = isActive(item.path);
+    const isChildActive = hasChildren && item.children.some((child: any) => isActive(child.path));
 
     return (
       <div key={item.id}>
@@ -200,8 +201,8 @@ export function Navigation({ userRole, isCollapsed = false }: NavigationProps) {
           {hasChildren ? (
             <button
               onClick={() => toggleExpanded(item.id)}
-              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors flex-1 ${
-                active
+              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left ${
+                active || isChildActive
                   ? 'bg-indigo-100 text-indigo-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               } ${level > 0 ? 'ml-6' : ''}`}
@@ -212,7 +213,7 @@ export function Navigation({ userRole, isCollapsed = false }: NavigationProps) {
           ) : (
             <Link
               to={item.path}
-              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors flex-1 ${
+              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                 active
                   ? 'bg-indigo-100 text-indigo-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -237,7 +238,19 @@ export function Navigation({ userRole, isCollapsed = false }: NavigationProps) {
         </div>
         {hasChildren && isExpanded && !isCollapsed && (
           <div className="mt-1 space-y-1">
-            {item.children.map((child: any) => renderNavItem(child, level + 1))}
+            {item.children.map((child: any) => (
+              <Link
+                key={child.id}
+                to={child.path}
+                className={`flex items-center px-3 py-2 ml-6 rounded-md text-sm font-medium transition-colors ${
+                  isActive(child.path)
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <span>{child.label}</span>
+              </Link>
+            ))}
           </div>
         )}
       </div>

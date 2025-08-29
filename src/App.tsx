@@ -25,6 +25,13 @@ import { Administration } from './pages/administration/Administration';
 import { BillingPayments } from './pages/billing/BillingPayments';
 import { HealthGoals } from './pages/health-goals/HealthGoals';
 import { NotFound } from './components/NotFound';
+import { AddRecord } from './pages/records/AddRecord';
+import { ShareRecords } from './pages/records/ShareRecords';
+import { AppointmentHistory } from './pages/appointments/AppointmentHistory';
+import { AddPatient } from './pages/patients/AddPatient';
+import { SearchPatients } from './pages/patients/SearchPatients';
+import { CreateRecord } from './pages/clinical/CreateRecord';
+import { ClinicalTemplates } from './pages/clinical/ClinicalTemplates';
 
 function App() {
   const { user, profile, loading, loadUser } = useAuthStore();
@@ -80,8 +87,8 @@ function App() {
           
           {/* Patient Routes */}
           <Route path="/records" element={<HealthRecords />} />
-          <Route path="/records/add" element={<HealthRecords />} />
-          <Route path="/records/share" element={<HealthRecords />} />
+          <Route path="/records/add" element={<AddRecord />} />
+          <Route path="/records/share" element={<ShareRecords />} />
           
           <Route path="/appointments" element={
             previewMode && mockPractitionerProfile.role === 'provider' ? (
@@ -92,7 +99,7 @@ function App() {
           } />
           <Route path="/appointments/book" element={<AppointmentSchedule />} />
           <Route path="/appointments/schedule" element={<AppointmentSchedule />} />
-          <Route path="/appointments/history" element={<PatientAppointments />} />
+          <Route path="/appointments/history" element={<AppointmentHistory />} />
           <Route path="/appointments/waiting-room" element={<PractitionerAppointments />} />
           
           <Route path="/medications" element={<Prescriptions />} />
@@ -106,12 +113,12 @@ function App() {
           
           {/* Provider Routes */}
           <Route path="/patients" element={<PatientManagement />} />
-          <Route path="/patients/add" element={<PatientManagement />} />
-          <Route path="/patients/search" element={<PatientManagement />} />
+          <Route path="/patients/add" element={<AddPatient />} />
+          <Route path="/patients/search" element={<SearchPatients />} />
           
           <Route path="/clinical-records" element={<ClinicalRecords />} />
-          <Route path="/clinical-records/create" element={<ClinicalRecords />} />
-          <Route path="/clinical-records/templates" element={<ClinicalRecords />} />
+          <Route path="/clinical-records/create" element={<CreateRecord />} />
+          <Route path="/clinical-records/templates" element={<ClinicalTemplates />} />
           
           <Route path="/prescriptions/create" element={<Prescriptions />} />
           <Route path="/prescriptions/history" element={<Prescriptions />} />
